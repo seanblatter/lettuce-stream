@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In - Lettuce Stream</title>
+    <link rel="stylesheet" href="auth.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="auth-container">
+        <!-- Left Side - Information -->
+        <div class="auth-info">
+            <div class="auth-info-content">
+                <div class="logo">
+                    <svg width="40" height="40" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="32" height="32" rx="8" fill="#F5D547"/>
+                        <path d="M12 9L22 16L12 23V9Z" fill="#2D3748"/>
+                    </svg>
+                    <span class="logo-text">Lettuce Stream</span>
+                </div>
+                
+                <h1>Welcome back to Lettuce Stream</h1>
+                <p class="info-subtitle">Continue growing your audience across all major streaming platforms.</p>
+                
+                <div class="benefits">
+                    <div class="benefit">
+                        <div class="benefit-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="10" stroke="#F5D547" stroke-width="2"/>
+                                <path d="M8 12L11 15L16 9" stroke="#F5D547" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3>Unified Dashboard</h3>
+                            <p>Manage all your streams from one powerful interface.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="benefit">
+                        <div class="benefit-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="10" stroke="#F5D547" stroke-width="2"/>
+                                <path d="M8 12L11 15L16 9" stroke="#F5D547" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3>Real-Time Analytics</h3>
+                            <p>Track your performance with detailed insights and metrics.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="benefit">
+                        <div class="benefit-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="10" stroke="#F5D547" stroke-width="2"/>
+                                <path d="M8 12L11 15L16 9" stroke="#F5D547" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3>Always Improving</h3>
+                            <p>New features and platform integrations added regularly.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-value">10K+</div>
+                        <div class="stat-label">Active Streamers</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">50M+</div>
+                        <div class="stat-label">Hours Streamed</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">99.9%</div>
+                        <div class="stat-label">Uptime</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Side - Sign In Form -->
+        <div class="auth-form-container">
+            <div class="auth-form-content">
+                <a href="index.html" class="back-link">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M12 4L6 10L12 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Back to home
+                </a>
+                
+                <div class="form-header">
+                    <h2>Sign in to your account</h2>
+                    <p>Welcome back! Please enter your details.</p>
+                </div>
+                
+                <form id="signinForm" class="auth-form">
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" placeholder="you@example.com" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                    </div>
+                    
+                    <div class="form-options">
+                        <div class="form-checkbox">
+                            <input type="checkbox" id="remember" name="remember">
+                            <label for="remember">Remember me</label>
+                        </div>
+                        <a href="#" class="link">Forgot password?</a>
+                    </div>
+                    
+                    <button type="submit" class="btn-submit">
+                        <span id="submitText">Sign In</span>
+                        <span id="submitSpinner" class="spinner" style="display: none;"></span>
+                    </button>
+                    
+                    <div id="errorMessage" class="error-message" style="display: none;"></div>
+                    <div id="successMessage" class="success-message" style="display: none;"></div>
+                </form>
+                
+                <div class="divider">
+                    <span>Or continue with</span>
+                </div>
+                
+                <div class="social-auth">
+                    <button class="social-btn" id="googleSignIn">
+                        <svg width="20" height="20" viewBox="0 0 20 20">
+                            <path d="M19.6 10.2c0-.7-.1-1.4-.2-2H10v3.8h5.4c-.2 1.2-1 2.2-2.1 2.9v2.5h3.4c2-1.8 3.1-4.5 3.1-7.2z" fill="#4285F4"/>
+                            <path d="M10 20c2.8 0 5.1-.9 6.9-2.5l-3.4-2.6c-.9.6-2.1 1-3.4 1-2.6 0-4.9-1.8-5.7-4.2H.8v2.7C2.6 17.8 6 20 10 20z" fill="#34A853"/>
+                            <path d="M4.3 11.7c-.2-.6-.3-1.2-.3-1.8s.1-1.2.3-1.8V5.4H.8C.3 6.4 0 7.7 0 10s.3 3.6.8 4.6l3.5-2.9z" fill="#FBBC05"/>
+                            <path d="M10 4c1.5 0 2.8.5 3.8 1.5l2.9-2.9C15.1.9 12.8 0 10 0 6 0 2.6 2.2.8 5.4l3.5 2.7C5.1 5.8 7.4 4 10 4z" fill="#EA4335"/>
+                        </svg>
+                        Continue with Google
+                    </button>
+                </div>
+                
+                <p class="auth-footer">
+                    Don't have an account? <a href="signup.html" class="link">Sign up for free</a>
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="firebase-config.js"></script>
+    
+    <!-- Auth Script -->
+    <script src="auth.js"></script>
+</body>
+</html>

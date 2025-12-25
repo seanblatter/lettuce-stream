@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lettuce Stream - Multi-Platform Streaming Made Easy</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-content">
+                <div class="logo">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="32" height="32" rx="8" fill="#F5D547"/>
+                        <path d="M12 9L22 16L12 23V9Z" fill="#2D3748"/>
+                    </svg>
+                    <span class="logo-text">Lettuce Stream</span>
+                </div>
+                <div class="nav-links">
+                    <a href="#features">Features</a>
+                    <a href="#pricing">Pricing</a>
+                    <a href="#about">About</a>
+                    <a href="signin.html" class="btn-secondary">Sign In</a>
+                    <a href="signup.html" class="btn-primary">Get Started</a>
+                </div>
+                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#about">About</a>
+        <a href="signin.html" class="btn-secondary">Sign In</a>
+        <a href="signup.html" class="btn-primary">Get Started</a>
+    </div>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1 class="hero-title">Stream to Every Platform, All at Once</h1>
+                <p class="hero-subtitle">Lettuce Stream lets you broadcast to YouTube, Twitch, and Kick simultaneously. Expand your reach, engage more viewers, and grow your audience effortlessly.</p>
+                <div class="hero-buttons">
+                    <a href="signup.html" class="btn-primary btn-large">Start Streaming Free</a>
+                    <a href="#pricing" class="btn-secondary btn-large">View Pricing</a>
+                </div>
+                <div class="platform-logos">
+                    <div class="platform-badge">YouTube</div>
+                    <div class="platform-badge">Twitch</div>
+                    <div class="platform-badge">Kick</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <div class="section-header">
+                <h2>Why Choose Lettuce Stream?</h2>
+                <p>Everything you need to succeed as a multi-platform streamer</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                            <rect width="40" height="40" rx="10" fill="#FFF9E6"/>
+                            <path d="M15 13L27 20L15 27V13Z" fill="#F5D547" stroke="#2D3748" stroke-width="2"/>
+                        </svg>
+                    </div>
+                    <h3>Multi-Platform Broadcasting</h3>
+                    <p>Stream to YouTube, Twitch, and Kick simultaneously with a single click. No complex setup required.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                            <rect width="40" height="40" rx="10" fill="#FFF9E6"/>
+                            <circle cx="20" cy="20" r="8" fill="none" stroke="#F5D547" stroke-width="2"/>
+                            <circle cx="20" cy="20" r="3" fill="#2D3748"/>
+                        </svg>
+                    </div>
+                    <h3>Real-Time Analytics</h3>
+                    <p>Monitor viewer counts, engagement metrics, and performance across all platforms in one dashboard.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                            <rect width="40" height="40" rx="10" fill="#FFF9E6"/>
+                            <rect x="12" y="15" width="16" height="10" rx="2" fill="none" stroke="#F5D547" stroke-width="2"/>
+                            <path d="M16 25V28M24 25V28M13 28H27" stroke="#2D3748" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <h3>Professional Quality</h3>
+                    <p>Stream in up to 4K resolution with adaptive bitrate to ensure the best quality for every platform.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                            <rect width="40" height="40" rx="10" fill="#FFF9E6"/>
+                            <path d="M20 12V20L25 25" stroke="#F5D547" stroke-width="2" stroke-linecap="round"/>
+                            <circle cx="20" cy="20" r="8" fill="none" stroke="#2D3748" stroke-width="2"/>
+                        </svg>
+                    </div>
+                    <h3>Scheduled Streaming</h3>
+                    <p>Schedule your streams in advance and let Lettuce Stream handle the rest automatically.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                            <rect width="40" height="40" rx="10" fill="#FFF9E6"/>
+                            <path d="M20 15L22 19H26L23 22L24 26L20 23L16 26L17 22L14 19H18L20 15Z" fill="#F5D547" stroke="#2D3748" stroke-width="1.5"/>
+                        </svg>
+                    </div>
+                    <h3>Custom Branding</h3>
+                    <p>Add your logo, overlays, and custom scenes to maintain brand consistency across all platforms.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                            <rect width="40" height="40" rx="10" fill="#FFF9E6"/>
+                            <rect x="14" y="14" width="12" height="12" rx="2" fill="none" stroke="#F5D547" stroke-width="2"/>
+                            <path d="M17 19L19 21L23 17" stroke="#2D3748" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <h3>Reliable & Secure</h3>
+                    <p>99.9% uptime guarantee with enterprise-grade security to protect your streams and data.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="pricing">
+        <div class="container">
+            <div class="section-header">
+                <h2>Simple, Transparent Pricing</h2>
+                <p>Choose the plan that's right for you. All plans include a 14-day free trial.</p>
+            </div>
+            <div class="pricing-grid">
+                <!-- Starter Plan -->
+                <div class="pricing-card">
+                    <div class="pricing-header">
+                        <h3>Starter</h3>
+                        <div class="price">
+                            <span class="price-amount">$9</span>
+                            <span class="price-period">/month</span>
+                        </div>
+                        <p class="pricing-description">Perfect for new streamers getting started</p>
+                    </div>
+                    <ul class="pricing-features">
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <circle cx="10" cy="10" r="10" fill="#F5D547"/>
+                                <path d="M6 10L9 13L14 7" stroke="#2D3748" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Stream to 2 platforms
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <circle cx="10" cy="10" r="10" fill="#F5D547"/>
+                                <path d="M6 10L9 13L14 7" stroke="#2D3748" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            1080p streaming quality
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <circle cx="10" cy="10" r="10" fill="#F5D547"/>
+                                <path d="M6 10L9 13L14 7" stroke="#2D3748" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Basic analytics
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <circle cx="10" cy="10" r="10" fill="#F5D547"/>
+                                <path d="M6 10L9 13L14 7" stroke="#2D3748" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Email support
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <circle cx="10" cy="10" r="10" fill="#F5D547"/>
+                                <path d="M6 10L9 13L14 7" stroke="#2D3748" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            50 hours/month
+                        </li>
+                    </ul>
+                    <a href="signup.html?plan=starter" class="btn-outline btn-large">Get Started</a>
+                </div>
+
+                <!-- Pro Plan (Most Popular) -->
+                <div class="pricing-card pricing-card-featured">
+                    <div class="popular-badge">Most Popular</div>
+                    <div class="pricing-header">
+                        <h3>Pro</h3>
+                        <div class="price">
+                            <span class="price-amount">$29</span>
+                            <span class="price-period">/month</span>
+                        </div>
+                        <p class="pricing-description">For serious streamers growing their audience</p>
+                    </div>
+                    <ul class="pricing-features">
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <circle cx="10" cy="10" r="10" fill="#F5D547"/>
+                                <path d="M6 10L9 13L14 7" stroke="#2D3748" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Stream to all 3 platforms
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <circle cx="10" cy="10" r="10" fill="#F5D547"/>
+                                <path d="M6 10L9 13L14 7" stroke="#2D3748" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            4K streaming quality
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <circle cx="10" cy="10" r="10" fill="#F5D547"/>
+                                <path d="M6 10L9 13L14 7" stroke="#2D3748" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Advanced analytics
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <circle cx="10" cy="10" r="10" fill="#F5D547"/>
+                                <path d="M6 10L9 13L14 7" stroke="#2D3748" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Priority support
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <circle cx="10" cy="10" r="10" fill="#F5D547"/>
+                                <path d="M6 10L9 13L14 7" stroke="#2D3748" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Unlimited hours
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <circle cx="10" cy="10" r="10" fill="#F5D547"/>
+                                <path d="M6 10L9 13L14 7" stroke="#2D3748" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Custom branding
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <circle cx="10" cy="10" r="10" fill="#F5D547"/>
+                                <path d="M6 10L9 13L14 7" stroke="#2D3748" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Scheduled streaming
+                        </li>
+                    </ul>
+                    <a href="signup.html?plan=pro" class="btn-primary btn-large">Get Started</a>
+                </div>
+
+                <!-- Enterprise Plan -->
+                <div class="pricing-card">
+                    <div class="pricing-header">
+                        <h3>Enterprise</h3>
+                        <div class="price">
+                            <span class="price-amount">$99</span>
+                            <span class="price-period">/month</span>
+                        </div>
+                        <p class="pricing-description">For professional teams and organizations</p>
+                    </div>
+                    <ul class="pricing-features">
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <circle cx="10" cy="10" r="10" fill="#F5D547"/>
+                                <path d="M6 10L9 13L14 7" stroke="#2D3748" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Everything in Pro
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <circle cx="10" cy="10" r="10" fill="#F5D547"/>
+                                <path d="M6 10L9 13L14 7" stroke="#2D3748" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            5 team members
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <circle cx="10" cy="10" r="10" fill="#F5D547"/>
+                                <path d="M6 10L9 13L14 7" stroke="#2D3748" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            White-label options
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <circle cx="10" cy="10" r="10" fill="#F5D547"/>
+                                <path d="M6 10L9 13L14 7" stroke="#2D3748" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Dedicated account manager
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <circle cx="10" cy="10" r="10" fill="#F5D547"/>
+                                <path d="M6 10L9 13L14 7" stroke="#2D3748" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            24/7 phone support
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <circle cx="10" cy="10" r="10" fill="#F5D547"/>
+                                <path d="M6 10L9 13L14 7" stroke="#2D3748" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            API access
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <circle cx="10" cy="10" r="10" fill="#F5D547"/>
+                                <path d="M6 10L9 13L14 7" stroke="#2D3748" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Custom integrations
+                        </li>
+                    </ul>
+                    <a href="signup.html?plan=enterprise" class="btn-outline btn-large">Get Started</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="about">
+        <div class="container">
+            <div class="about-content">
+                <h2>Grow Your Audience Across All Platforms</h2>
+                <p>Lettuce Stream was built by streamers, for streamers. We understand the challenges of managing multiple platforms and wanted to create a solution that makes multi-platform streaming effortless.</p>
+                <p>With Lettuce Stream, you can focus on creating great content while we handle the technical complexity of broadcasting to YouTube, Twitch, and Kick simultaneously.</p>
+                <div class="stats-grid">
+                    <div class="stat">
+                        <div class="stat-number">10,000+</div>
+                        <div class="stat-label">Active Streamers</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">50M+</div>
+                        <div class="stat-label">Hours Streamed</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">99.9%</div>
+                        <div class="stat-label">Uptime</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="logo">
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="32" height="32" rx="8" fill="#F5D547"/>
+                            <path d="M12 9L22 16L12 23V9Z" fill="#2D3748"/>
+                        </svg>
+                        <span class="logo-text">Lettuce Stream</span>
+                    </div>
+                    <p class="footer-description">The easiest way to stream to multiple platforms simultaneously.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Product</h4>
+                    <ul>
+                        <li><a href="#features">Features</a></li>
+                        <li><a href="#pricing">Pricing</a></li>
+                        <li><a href="#">Documentation</a></li>
+                        <li><a href="#">API</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Company</h4>
+                    <ul>
+                        <li><a href="#about">About</a></li>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">Careers</a></li>
+                        <li><a href="#">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Legal</h4>
+                    <ul>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                        <li><a href="#">Cookie Policy</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Lettuce Stream. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
