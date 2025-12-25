@@ -1,13 +1,13 @@
 // Firebase Configuration
 // Replace these values with your actual Firebase project configuration
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID",
-    measurementId: "YOUR_MEASUREMENT_ID"
+    apiKey: "AIzaSyBhzWdFbh0uiwLv_gUAqfsPFgDF3g0ehkY",
+  authDomain: "lettuce-stream.firebaseapp.com",
+  projectId: "lettuce-stream",
+  storageBucket: "lettuce-stream.firebasestorage.app",
+  messagingSenderId: "123320097160",
+  appId: "1:123320097160:web:3fcc5438b795926915823d",
+  measurementId: "G-4Z6SGR0T1T"
 };
 
 // Initialize Firebase
