@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - Lettuce Stream</title>
+    <link rel="stylesheet" href="auth.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="auth-container">
+        <!-- Left Side - Information -->
+        <div class="auth-info">
+            <div class="auth-info-content">
+                <div class="logo">
+                    <svg width="40" height="40" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="32" height="32" rx="8" fill="#F5D547"/>
+                        <path d="M12 9L22 16L12 23V9Z" fill="#2D3748"/>
+                    </svg>
+                    <span class="logo-text">Lettuce Stream</span>
+                </div>
+                
+                <h1>Start streaming to all platforms today</h1>
+                <p class="info-subtitle">Join thousands of streamers who are growing their audience with Lettuce Stream.</p>
+                
+                <div class="benefits">
+                    <div class="benefit">
+                        <div class="benefit-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="10" stroke="#F5D547" stroke-width="2"/>
+                                <path d="M8 12L11 15L16 9" stroke="#F5D547" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3>Multi-Platform Broadcasting</h3>
+                            <p>Stream to YouTube, Twitch, and Kick simultaneously with zero hassle.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="benefit">
+                        <div class="benefit-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="10" stroke="#F5D547" stroke-width="2"/>
+                                <path d="M8 12L11 15L16 9" stroke="#F5D547" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3>Professional Quality</h3>
+                            <p>Stream in up to 4K with adaptive bitrate for the best viewer experience.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="benefit">
+                        <div class="benefit-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="10" stroke="#F5D547" stroke-width="2"/>
+                                <path d="M8 12L11 15L16 9" stroke="#F5D547" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3>14-Day Free Trial</h3>
+                            <p>Try all features risk-free. No credit card required to start.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="testimonial">
+                    <p>"Lettuce Stream changed the game for me. I've tripled my viewership by streaming to all platforms at once."</p>
+                    <div class="testimonial-author">
+                        <strong>Sarah Johnson</strong>
+                        <span>Gaming Streamer</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Side - Sign Up Form -->
+        <div class="auth-form-container">
+            <div class="auth-form-content">
+                <a href="index.html" class="back-link">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M12 4L6 10L12 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Back to home
+                </a>
+                
+                <div class="form-header">
+                    <h2>Create your account</h2>
+                    <p>Start your 14-day free trial</p>
+                </div>
+                
+                <form id="signupForm" class="auth-form">
+                    <div class="form-group">
+                        <label for="fullName">Full Name</label>
+                        <input type="text" id="fullName" name="fullName" placeholder="John Doe" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" placeholder="you@example.com" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" placeholder="At least 8 characters" required minlength="8">
+                        <span class="form-hint">Must be at least 8 characters</span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="plan">Select Plan</label>
+                        <select id="plan" name="plan" required>
+                            <option value="">Choose a plan</option>
+                            <option value="starter">Starter - $9/month</option>
+                            <option value="pro">Pro - $29/month (Most Popular)</option>
+                            <option value="enterprise">Enterprise - $99/month</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-checkbox">
+                        <input type="checkbox" id="terms" name="terms" required>
+                        <label for="terms">
+                            I agree to the <a href="#" class="link">Terms of Service</a> and <a href="#" class="link">Privacy Policy</a>
+                        </label>
+                    </div>
+                    
+                    <button type="submit" class="btn-submit">
+                        <span id="submitText">Create Account</span>
+                        <span id="submitSpinner" class="spinner" style="display: none;"></span>
+                    </button>
+                    
+                    <div id="errorMessage" class="error-message" style="display: none;"></div>
+                    <div id="successMessage" class="success-message" style="display: none;"></div>
+                </form>
+                
+                <div class="divider">
+                    <span>Or continue with</span>
+                </div>
+                
+                <div class="social-auth">
+                    <button class="social-btn" id="googleSignIn">
+                        <svg width="20" height="20" viewBox="0 0 20 20">
+                            <path d="M19.6 10.2c0-.7-.1-1.4-.2-2H10v3.8h5.4c-.2 1.2-1 2.2-2.1 2.9v2.5h3.4c2-1.8 3.1-4.5 3.1-7.2z" fill="#4285F4"/>
+                            <path d="M10 20c2.8 0 5.1-.9 6.9-2.5l-3.4-2.6c-.9.6-2.1 1-3.4 1-2.6 0-4.9-1.8-5.7-4.2H.8v2.7C2.6 17.8 6 20 10 20z" fill="#34A853"/>
+                            <path d="M4.3 11.7c-.2-.6-.3-1.2-.3-1.8s.1-1.2.3-1.8V5.4H.8C.3 6.4 0 7.7 0 10s.3 3.6.8 4.6l3.5-2.9z" fill="#FBBC05"/>
+                            <path d="M10 4c1.5 0 2.8.5 3.8 1.5l2.9-2.9C15.1.9 12.8 0 10 0 6 0 2.6 2.2.8 5.4l3.5 2.7C5.1 5.8 7.4 4 10 4z" fill="#EA4335"/>
+                        </svg>
+                        Continue with Google
+                    </button>
+                </div>
+                
+                <p class="auth-footer">
+                    Already have an account? <a href="signin.html" class="link">Sign in</a>
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <!-- Stripe SDK -->
+    <script src="https://js.stripe.com/v3/"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="firebase-config.js"></script>
+    
+    <!-- Auth Script -->
+    <script src="auth.js"></script>
+</body>
+</html>
