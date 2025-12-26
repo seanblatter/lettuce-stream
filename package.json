@@ -1,0 +1,24 @@
+{
+  "name": "lettuce-stream",
+  "version": "1.0.0",
+  "description": "A modern, responsive landing page for Lettuce Stream - a SaaS platform that enables streamers to broadcast to multiple platforms (YouTube, Twitch, Kick) simultaneously.",
+  "main": "app.js",
+  "devDependencies": {
+    "jest": "^30.2.0"
+  },
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/seanblatter/lettuce-stream.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/seanblatter/lettuce-stream/issues"
+  },
+  "homepage": "https://github.com/seanblatter/lettuce-stream#readme"
+}

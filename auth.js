@@ -1,6 +1,15 @@
+// Helper wiring for shared utilities
+const helperFallback = {
+    getErrorMessage: () => 'An error occurred. Please try again.'
+};
+const authHelpers = (typeof window !== 'undefined' && window.authHelpers)
+    ? window.authHelpers
+    : (typeof require !== 'undefined' ? require('./auth-helpers') : helperFallback);
+const { getErrorMessage } = authHelpers;
+
 // Stripe Configuration
 // Replace with your actual Stripe publishable key
-const stripe = Stripe('pk_test_YOUR_PUBLISHABLE_KEY');
+const stripe = typeof Stripe !== 'undefined' ? Stripe('pk_test_YOUR_PUBLISHABLE_KEY') : null;
 
 // Check if user is already logged in
 auth.onAuthStateChanged((user) => {
@@ -217,22 +226,4 @@ function showError(element, message) {
 function showSuccess(element, message) {
     element.textContent = message;
     element.style.display = 'block';
-}
-
-function getErrorMessage(errorCode) {
-    const errorMessages = {
-        'auth/email-already-in-use': 'This email is already registered. Please sign in instead.',
-        'auth/invalid-email': 'Please enter a valid email address.',
-        'auth/operation-not-allowed': 'Email/password accounts are not enabled. Please contact support.',
-        'auth/weak-password': 'Password should be at least 8 characters long.',
-        'auth/user-disabled': 'This account has been disabled. Please contact support.',
-        'auth/user-not-found': 'No account found with this email. Please sign up first.',
-        'auth/wrong-password': 'Incorrect password. Please try again.',
-        'auth/too-many-requests': 'Too many failed attempts. Please try again later.',
-        'auth/network-request-failed': 'Network error. Please check your connection.',
-        'auth/popup-closed-by-user': 'Sign in cancelled.',
-        'auth/cancelled-popup-request': 'Sign in cancelled.'
-    };
-    
-    return errorMessages[errorCode] || 'An error occurred. Please try again.';
 }
