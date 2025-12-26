@@ -65,23 +65,27 @@ if (signupForm) {
                 displayName: fullName
             });
             
-            // Store user data in Firestore
-            await db.collection('users').doc(user.uid).set({
-                fullName: fullName,
-                email: email,
-                plan: plan,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days from now
-                status: 'trial'
-            });
+            // Store user data in Firestore (best effort so auth flow still succeeds)
+            try {
+                await db.collection('users').doc(user.uid).set({
+                    fullName: fullName,
+                    email: email,
+                    plan: plan,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days from now
+                    status: 'trial'
+                });
+            } catch (profileError) {
+                console.warn('Unable to store user profile. Check Firestore rules.', profileError);
+            }
             
             // Show success message
-            showSuccess(successMessage, 'Account created successfully! Redirecting to payment...');
+            showSuccess(successMessage, 'Account created successfully! Redirecting to dashboard...');
             
-            // Redirect to Stripe checkout
+            // Allow the user into the product even if profile write fails
             setTimeout(() => {
-                redirectToStripeCheckout(user.uid, plan);
-            }, 1500);
+                window.location.href = 'dashboard.html';
+            }, 1200);
             
         } catch (error) {
             console.error('Error signing up:', error);
@@ -155,15 +159,18 @@ if (googleSignInBtn) {
             
             if (!userDoc.exists) {
                 // New user - create profile and redirect to plan selection
-                await db.collection('users').doc(user.uid).set({
-                    fullName: user.displayName,
-                    email: user.email,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    status: 'new'
-                });
+                try {
+                    await db.collection('users').doc(user.uid).set({
+                        fullName: user.displayName,
+                        email: user.email,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        status: 'trial'
+                    });
+                } catch (profileError) {
+                    console.warn('Unable to store Google user profile.', profileError);
+                }
                 
-                // Redirect to signup to select plan
-                window.location.href = 'signup.html';
+                window.location.href = 'dashboard.html';
             } else {
                 // Existing user - redirect to dashboard
                 window.location.href = 'dashboard.html';
