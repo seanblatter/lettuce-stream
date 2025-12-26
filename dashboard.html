@@ -245,7 +245,10 @@
         const dashboardState = {
             requiresUpgrade: true,
             userId: null,
-            plan: 'Trial'
+            plan: 'Trial',
+            status: 'trial',
+            cancelsAt: null,
+            hasSyncedExpiration: false
         };
 
         const bodyElement = document.body;
@@ -254,12 +257,15 @@
         const themeToggleLabel = document.getElementById('themeToggleLabel');
         const userMenuButton = document.getElementById('userMenuButton');
         const userDropdown = document.getElementById('userDropdown');
+        const upgradeBanner = document.getElementById('upgradeBanner');
+        const sidebarUpgradeButton = document.querySelector('.sidebar-upgrade');
+        const upgradeTriggers = document.querySelectorAll('[data-upgrade-trigger]');
         const THEME_STORAGE_KEY = 'lettuce-dashboard-theme';
 
         initTheme();
         initUserMenu();
 
-        document.querySelectorAll('[data-upgrade-trigger]').forEach((btn) => {
+        upgradeTriggers.forEach((btn) => {
             btn.addEventListener('click', () => initiateUpgrade());
         });
 
@@ -297,18 +303,34 @@
             const name = profile.fullName || user.displayName || (user.email ? user.email.split('@')[0] : 'Creator');
             const plan = (profile.plan || 'Trial');
             const status = (profile.status || 'trial').toLowerCase();
-            const upgraded = ['active', 'paid', 'upgraded'].includes(status);
+            const cancelsAt = parseTimestamp(profile.cancelsAt);
+            const now = new Date();
+            const statusWhitelist = ['active', 'paid', 'upgraded'];
+            let upgraded = statusWhitelist.includes(status);
+            const isCancelling = status === 'cancelling';
+
+            if (isCancelling) {
+                if (cancelsAt && cancelsAt > now) {
+                    upgraded = true;
+                } else if (cancelsAt && cancelsAt <= now && !dashboardState.hasSyncedExpiration) {
+                    upgraded = false;
+                    dashboardState.hasSyncedExpiration = true;
+                    markSubscriptionExpired(user.uid);
+                }
+            }
 
             dashboardState.requiresUpgrade = !upgraded;
             dashboardState.plan = plan;
+            dashboardState.status = status;
+            dashboardState.cancelsAt = cancelsAt;
 
             document.getElementById('primaryUserName').textContent = name;
             document.getElementById('sidebarUserName').textContent = name;
             document.getElementById('sidebarUserInitial').textContent = name.charAt(0).toUpperCase();
-            document.getElementById('sidebarUserPlan').textContent = upgraded ? capitalize(plan) : 'Trial';
-            document.getElementById('planBadge').textContent = upgraded ? capitalize(plan) : 'Trial';
+            updatePlanBadges({ plan, upgraded, isCancelling, cancelsAt });
 
             toggleLockState();
+            toggleUpgradeCues();
         }
 
         function toggleLockState() {
@@ -351,6 +373,70 @@
                 redirectToStripeCheckout(dashboardState.userId, 'pro');
             } else {
                 window.location.href = 'signup.html?plan=pro';
+            }
+        }
+
+        function toggleUpgradeCues() {
+            const needsUpgrade = dashboardState.requiresUpgrade;
+            if (upgradeBanner) {
+                upgradeBanner.hidden = !needsUpgrade;
+            }
+            if (sidebarUpgradeButton) {
+                sidebarUpgradeButton.style.display = needsUpgrade ? 'flex' : 'none';
+                sidebarUpgradeButton.setAttribute('aria-hidden', String(!needsUpgrade));
+            }
+            upgradeTriggers.forEach((btn) => {
+                btn.disabled = !needsUpgrade;
+                btn.setAttribute('aria-hidden', String(!needsUpgrade));
+                btn.style.display = needsUpgrade ? '' : 'none';
+            });
+        }
+
+        function updatePlanBadges({ plan, upgraded, isCancelling, cancelsAt }) {
+            const sidebarPlan = document.getElementById('sidebarUserPlan');
+            const planBadge = document.getElementById('planBadge');
+            const planLabel = upgraded ? capitalize(plan) : 'Trial';
+            const cancelLabel = cancelsAt ? `Ends ${formatDate(cancelsAt)}` : 'Trial ends soon';
+
+            if (sidebarPlan) {
+                sidebarPlan.textContent = isCancelling && cancelsAt ? 'Cancels soon' : planLabel;
+            }
+
+            if (planBadge) {
+                planBadge.textContent = isCancelling && cancelsAt ? cancelLabel : planLabel;
+            }
+        }
+
+        function parseTimestamp(value) {
+            if (!value) {
+                return null;
+            }
+            if (typeof value.toDate === 'function') {
+                return value.toDate();
+            }
+            const parsed = new Date(value);
+            return Number.isNaN(parsed.getTime()) ? null : parsed;
+        }
+
+        function formatDate(date) {
+            if (!(date instanceof Date)) {
+                return '';
+            }
+            return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        }
+
+        async function markSubscriptionExpired(userId) {
+            if (!userId) {
+                return;
+            }
+            try {
+                await db.collection('users').doc(userId).set({
+                    status: 'expired',
+                    plan: 'Trial',
+                    cancelsAt: null
+                }, { merge: true });
+            } catch (error) {
+                console.error('Unable to mark subscription expired:', error);
             }
         }
 
@@ -416,7 +502,7 @@
             closeUserMenu();
             switch (action) {
                 case 'billing':
-                    window.location.href = 'plans.html#billing';
+                    window.location.href = 'billing.html';
                     break;
                 case 'settings':
                     showToast('Settings coming soon.');

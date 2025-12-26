@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Billing - Lettuce Stream</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="billing-body">
+    <div class="billing-atmosphere"></div>
+
+    <nav class="billing-nav">
+        <a href="dashboard.html" class="billing-logo">
+            <svg width="34" height="34" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <rect width="32" height="32" rx="8" fill="#F5D547" />
+                <path d="M12 9L22 16L12 23V9Z" fill="#0F172A" />
+            </svg>
+            <span>Lettuce Stream</span>
+        </a>
+        <div class="billing-nav-actions">
+            <a href="mailto:hello@lettucestream.com" class="ghost-link">Contact support</a>
+            <a href="dashboard.html" class="btn-secondary">Back to dashboard</a>
+        </div>
+    </nav>
+
+    <main class="billing-shell">
+        <section class="billing-panel billing-summary">
+            <div class="summary-heading">
+                <p class="eyebrow">Current plan</p>
+                <h1 id="billingPlanName">Loading plan…</h1>
+                <p id="billingPlanDescription">Hang tight while we pull your subscription details.</p>
+                <p class="billing-price" id="billingPrice">—</p>
+            </div>
+            <ul class="billing-feature-list" id="billingFeatures" aria-label="Plan benefits"></ul>
+        </section>
+
+        <section class="billing-panel billing-details">
+            <div class="billing-card">
+                <div>
+                    <p class="eyebrow">Status</p>
+                    <h3 id="billingStatusValue">Checking…</h3>
+                    <p class="billing-subtext" id="billingStatusCopy">We will update this momentarily.</p>
+                </div>
+                <div class="billing-meta">
+                    <div>
+                        <p class="summary-label">Next renewal</p>
+                        <p class="summary-value" id="billingRenewalValue">—</p>
+                    </div>
+                    <div>
+                        <p class="summary-label">Account email</p>
+                        <p class="summary-value" id="billingEmailValue">—</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="billing-card">
+                <div>
+                    <p class="eyebrow">Payment method</p>
+                    <h3>Managed by Stripe</h3>
+                    <p class="billing-subtext">We use Stripe to secure your payment details. Full self-serve card management is coming soon.</p>
+                </div>
+                <button type="button" class="btn-secondary" id="updatePayment" disabled>Manage in Stripe</button>
+            </div>
+
+            <div class="billing-card billing-actions">
+                <div>
+                    <p class="eyebrow">Plan controls</p>
+                    <h3>Need to make a change?</h3>
+                    <p class="billing-subtext" id="billingActionCopy">You can cancel at any time. Access stays active through the end of your billing period.</p>
+                </div>
+                <div class="billing-action-buttons">
+                    <button type="button" class="btn-primary" id="resumePlan" hidden>Resume plan</button>
+                    <button type="button" class="btn-secondary danger" id="cancelPlan" hidden>Cancel plan</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div class="billing-message" id="billingMessage" role="status" hidden></div>
+
+    <div class="billing-loading" id="billingLoading" role="status" aria-live="polite" hidden>
+        <div class="loading-indicator"></div>
+        <p>Syncing billing details…</p>
+    </div>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <script src="firebase-config.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const PLAN_CATALOG = {
+                trial: {
+                    label: 'Trial',
+                    priceLabel: 'Free during preview',
+                    description: 'Sample every workflow before you commit to a paid plan.',
+                    features: [
+                        'Stream planning + scheduling',
+                        'Studio preview access',
+                        'Upgrade anytime to go live'
+                    ]
+                },
+                starter: {
+                    label: 'Starter',
+                    priceLabel: '$9 / month',
+                    description: 'For emerging creators learning multi-streaming fundamentals.',
+                    features: [
+                        'Stream to 2 destinations',
+                        '1080p HD output',
+                        'Basic analytics'
+                    ]
+                },
+                pro: {
+                    label: 'Pro',
+                    priceLabel: '$29 / month',
+                    description: 'Best for growing channels unlocking every platform and automation.',
+                    features: [
+                        'All 8 destinations unlocked',
+                        '4K streaming + recording',
+                        'Advanced analytics & overlays'
+                    ]
+                },
+                enterprise: {
+                    label: 'Enterprise',
+                    priceLabel: '$99 / month',
+                    description: 'For studios that need collaboration, compliance, and white-glove care.',
+                    features: [
+                        'Everything in Pro',
+                        '5 team seats included',
+                        'Dedicated account manager'
+                    ]
+                }
+            };
+
+            if (typeof auth === 'undefined' || typeof db === 'undefined') {
+                showMessage('Billing requires Firebase. Please refresh the page.', 'error');
+                return;
+            }
+
+            let activeUser = null;
+            let activeProfile = {};
+
+            const planNameEl = document.getElementById('billingPlanName');
+            const planDescriptionEl = document.getElementById('billingPlanDescription');
+            const planPriceEl = document.getElementById('billingPrice');
+            const featureListEl = document.getElementById('billingFeatures');
+            const statusValueEl = document.getElementById('billingStatusValue');
+            const statusCopyEl = document.getElementById('billingStatusCopy');
+            const renewalValueEl = document.getElementById('billingRenewalValue');
+            const emailValueEl = document.getElementById('billingEmailValue');
+            const actionCopyEl = document.getElementById('billingActionCopy');
+            const cancelButton = document.getElementById('cancelPlan');
+            const resumeButton = document.getElementById('resumePlan');
+            const loadingOverlay = document.getElementById('billingLoading');
+
+            cancelButton.addEventListener('click', () => scheduleCancellation());
+            resumeButton.addEventListener('click', () => resumeSubscription());
+
+            auth.onAuthStateChanged(async (user) => {
+                if (!user) {
+                    window.location.href = 'signin.html?next=billing';
+                    return;
+                }
+                activeUser = user;
+                emailValueEl.textContent = user.email || 'Signed in user';
+                await loadProfile();
+            });
+
+            async function loadProfile() {
+                setLoading(true);
+                try {
+                    const profileDoc = await db.collection('users').doc(activeUser.uid).get();
+                    activeProfile = profileDoc.exists ? profileDoc.data() : {};
+                    renderProfile();
+                } catch (error) {
+                    console.error('Unable to load billing profile:', error);
+                    showMessage('Unable to load billing details. Please refresh the page.', 'error');
+                } finally {
+                    setLoading(false);
+                }
+            }
+
+            function renderProfile() {
+                const planKey = (activeProfile.plan || '').toLowerCase();
+                const planEntry = PLAN_CATALOG[planKey] || PLAN_CATALOG.trial;
+                const status = (activeProfile.status || 'trial').toLowerCase();
+                const cancelsAt = parseTimestamp(activeProfile.cancelsAt);
+                const renewsAt = parseTimestamp(activeProfile.renewsAt);
+                const now = new Date();
+
+                planNameEl.textContent = `${planEntry.label} plan`;
+                planDescriptionEl.textContent = planEntry.description;
+                planPriceEl.textContent = planEntry.priceLabel;
+                renderFeatureList(planEntry.features);
+
+                const statusDisplay = formatStatus(status, cancelsAt, now);
+                statusValueEl.textContent = statusDisplay.primary;
+                statusCopyEl.textContent = statusDisplay.copy;
+
+                const renewalDate = determineRenewalDate({ status, cancelsAt, renewsAt, now });
+                renewalValueEl.textContent = renewalDate ? formatFullDate(renewalDate) : 'Not scheduled';
+
+                const cancellationScheduled = status === 'cancelling' && cancelsAt && cancelsAt > now;
+                const hasPaidPlan = ['starter', 'pro', 'enterprise'].includes(planKey);
+                cancelButton.hidden = !hasPaidPlan || cancellationScheduled;
+                resumeButton.hidden = !cancellationScheduled;
+
+                if (cancellationScheduled && cancelsAt) {
+                    actionCopyEl.textContent = `Your plan will end on ${formatFullDate(cancelsAt)}. Resume before then to stay live.`;
+                } else if (hasPaidPlan) {
+                    actionCopyEl.textContent = 'Cancel anytime. Access stays active through the end of your billing period.';
+                } else {
+                    actionCopyEl.textContent = 'Upgrade to unlock scheduling, multi-streaming, and analytics.';
+                }
+            }
+
+            function renderFeatureList(features = []) {
+                featureListEl.innerHTML = '';
+                features.forEach((feature) => {
+                    const item = document.createElement('li');
+                    item.textContent = feature;
+                    featureListEl.appendChild(item);
+                });
+            }
+
+            function formatStatus(status, cancelsAt, now) {
+                switch (status) {
+                    case 'active':
+                    case 'paid':
+                    case 'upgraded':
+                        return { primary: 'Active', copy: 'Streaming is unlocked across your workspace.' };
+                    case 'cancelling':
+                        if (cancelsAt && cancelsAt > now) {
+                            return { primary: 'Cancels after this period', copy: `Plan remains active until ${formatFullDate(cancelsAt)}.` };
+                        }
+                        return { primary: 'Ended', copy: 'Your cancellation date has passed.' };
+                    case 'expired':
+                        return { primary: 'Expired', copy: 'Re-activate a plan to go live again.' };
+                    default:
+                        return { primary: 'Trial', copy: 'Upgrade to unlock every streaming destination.' };
+                }
+            }
+
+            function determineRenewalDate({ status, cancelsAt, renewsAt, now }) {
+                if (status === 'cancelling' && cancelsAt && cancelsAt > now) {
+                    return cancelsAt;
+                }
+                if (renewsAt) {
+                    return renewsAt;
+                }
+                return addDays(now, 30);
+            }
+
+            async function scheduleCancellation() {
+                if (!activeUser) {
+                    return;
+                }
+                const confirmation = window.confirm('Cancel plan? You will keep access until the end of this billing period.');
+                if (!confirmation) {
+                    return;
+                }
+                setLoading(true);
+                try {
+                    const renewalDate = determineRenewalDate({
+                        status: activeProfile.status || 'active',
+                        cancelsAt: parseTimestamp(activeProfile.cancelsAt),
+                        renewsAt: parseTimestamp(activeProfile.renewsAt),
+                        now: new Date()
+                    });
+                    await db.collection('users').doc(activeUser.uid).set({
+                        status: 'cancelling',
+                        cancelsAt: renewalDate ? firebase.firestore.Timestamp.fromDate(renewalDate) : firebase.firestore.Timestamp.fromDate(addDays(new Date(), 30))
+                    }, { merge: true });
+                    showMessage('Cancellation scheduled. You will retain access until the end of your current period.', 'success');
+                    await loadProfile();
+                } catch (error) {
+                    console.error('Unable to schedule cancellation:', error);
+                    showMessage('We could not schedule your cancellation. Please try again.', 'error');
+                } finally {
+                    setLoading(false);
+                }
+            }
+
+            async function resumeSubscription() {
+                if (!activeUser) {
+                    return;
+                }
+                setLoading(true);
+                try {
+                    await db.collection('users').doc(activeUser.uid).set({
+                        status: 'active',
+                        cancelsAt: null
+                    }, { merge: true });
+                    showMessage('Your plan will continue after this billing period.', 'success');
+                    await loadProfile();
+                } catch (error) {
+                    console.error('Unable to resume subscription:', error);
+                    showMessage('We could not resume your plan. Please try again.', 'error');
+                } finally {
+                    setLoading(false);
+                }
+            }
+
+            function parseTimestamp(value) {
+                if (!value) {
+                    return null;
+                }
+                if (typeof value.toDate === 'function') {
+                    return value.toDate();
+                }
+                const parsed = new Date(value);
+                return Number.isNaN(parsed.getTime()) ? null : parsed;
+            }
+
+            function addDays(date, days) {
+                const next = new Date(date);
+                next.setDate(next.getDate() + days);
+                return next;
+            }
+
+            function formatFullDate(date) {
+                if (!(date instanceof Date)) {
+                    return '';
+                }
+                return date.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+            }
+
+            function showMessage(message, tone = 'info') {
+                const messageEl = document.getElementById('billingMessage');
+                if (!message) {
+                    messageEl.hidden = true;
+                    messageEl.textContent = '';
+                    messageEl.dataset.tone = '';
+                    return;
+                }
+                messageEl.hidden = false;
+                messageEl.textContent = message;
+                messageEl.dataset.tone = tone;
+            }
+
+            function setLoading(isLoading) {
+                loadingOverlay.hidden = !isLoading;
+            }
+        });
+    </script>
+</body>
+</html>

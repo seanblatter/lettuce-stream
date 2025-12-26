@@ -289,11 +289,14 @@
                 showMessage('Payment succeeded. Unlocking your workspace…', 'success');
 
                 try {
+                    const renewalDate = calculateRenewalDate();
                     await db.collection('users').doc(activeUser.uid).set({
                         plan: activePlan.label,
                         status: 'active',
                         upgradedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        lastPaymentIntent: paymentIntent?.id || null
+                        lastPaymentIntent: paymentIntent?.id || null,
+                        cancelsAt: null,
+                        renewsAt: firebase.firestore.Timestamp.fromDate(renewalDate)
                     }, { merge: true });
                 } catch (error) {
                     console.error('Unable to update plan status:', error);
@@ -350,6 +353,12 @@
 
             function setOverlayVisible(isVisible) {
                 loadingOverlay.hidden = !isVisible;
+            }
+
+            function calculateRenewalDate(baseDate = new Date()) {
+                const next = new Date(baseDate);
+                next.setMonth(next.getMonth() + 1);
+                return next;
             }
 
             function wireNavigation() {
