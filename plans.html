@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plans Comparison - Lettuce Stream</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="plans-body">
+    <nav class="plans-nav">
+        <a href="dashboard.html" class="logo">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="32" height="32" rx="8" fill="#F5D547"/>
+                <path d="M12 9L22 16L12 23V9Z" fill="#2D3748"/>
+            </svg>
+            <span class="logo-text">Lettuce Stream</span>
+        </a>
+        <div class="nav-actions">
+            <a href="dashboard.html" class="btn-secondary">Back to Dashboard</a>
+            <button type="button" class="btn-primary" data-plan-tier="pro">Upgrade Now</button>
+        </div>
+    </nav>
+
+    <main class="plans-main">
+        <section class="plans-hero">
+            <p class="eyebrow">Plans</p>
+            <h1>Compare plans and unlock streaming</h1>
+            <p>Stay on your trial while you evaluate, then upgrade the moment you're ready to broadcast everywhere.</p>
+        </section>
+
+        <section class="plans-grid">
+            <article class="plan-card">
+                <h3>Starter</h3>
+                <p class="plan-description">For emerging creators learning multi-streaming fundamentals.</p>
+                <p class="plan-price">$9 <span>/month</span></p>
+                <ul class="plan-feature-list">
+                    <li>Stream to 2 destinations</li>
+                    <li>1080p HD output</li>
+                    <li>Basic analytics</li>
+                    <li>Email support</li>
+                    <li>50 hours per month</li>
+                </ul>
+                <button type="button" class="btn-outline plan-cta" data-plan-tier="starter">Choose Starter</button>
+            </article>
+
+            <article class="plan-card featured">
+                <h3>Pro</h3>
+                <p class="plan-description">Best for growing channels that need every platform and serious automation.</p>
+                <p class="plan-price">$29 <span>/month</span></p>
+                <ul class="plan-feature-list">
+                    <li>All 8 destinations unlocked</li>
+                    <li>4K streaming + recording</li>
+                    <li>Advanced analytics & alerts</li>
+                    <li>Custom branding & overlays</li>
+                    <li>Unlimited streaming hours</li>
+                </ul>
+                <button type="button" class="btn-primary plan-cta" data-plan-tier="pro">Go Pro</button>
+            </article>
+
+            <article class="plan-card">
+                <h3>Enterprise</h3>
+                <p class="plan-description">For studios and teams that need collaboration, compliance, and white-glove care.</p>
+                <p class="plan-price">$99 <span>/month</span></p>
+                <ul class="plan-feature-list">
+                    <li>Everything in Pro</li>
+                    <li>5 team seats included</li>
+                    <li>White-label player and API</li>
+                    <li>Dedicated account manager</li>
+                    <li>24/7 phone & chat support</li>
+                </ul>
+                <button type="button" class="btn-secondary plan-cta" data-plan-tier="enterprise">Talk to Sales</button>
+            </article>
+        </section>
+
+        <section class="plans-table">
+            <h3>Feature breakdown</h3>
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Capability</th>
+                            <th>Starter</th>
+                            <th>Pro</th>
+                            <th>Enterprise</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Platforms</td>
+                            <td>Up to 2</td>
+                            <td>All 8</td>
+                            <td>All 8 + custom RTMP</td>
+                        </tr>
+                        <tr>
+                            <td>Streaming quality</td>
+                            <td>1080p</td>
+                            <td>4K + adaptive bitrate</td>
+                            <td>4K + dedicated CDN</td>
+                        </tr>
+                        <tr>
+                            <td>Scheduling</td>
+                            <td>Single events</td>
+                            <td>Playlists & recurring</td>
+                            <td>Team-wide calendar</td>
+                        </tr>
+                        <tr>
+                            <td>Support</td>
+                            <td>Email</td>
+                            <td>Priority chat</td>
+                            <td>24/7 phone + TAM</td>
+                        </tr>
+                        <tr>
+                            <td>Automation</td>
+                            <td>Basic triggers</td>
+                            <td>Full workflow builder</td>
+                            <td>Advanced API automations</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="plans-footer-cta">
+            <h3>Need a custom package?</h3>
+            <p>Bundle multi-channel licenses, bespoke integrations, or managed production services and we'll tailor pricing to your studio.</p>
+            <a href="mailto:hello@lettucestream.com" class="btn-secondary">Contact Sales</a>
+        </section>
+    </main>
+
+    <!-- Firebase + Stripe for upgrade routing -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://js.stripe.com/v3/"></script>
+
+    <script src="firebase-config.js"></script>
+    <script src="auth.js"></script>
+    <script>
+        let activeUser = null;
+        const planButtons = document.querySelectorAll('[data-plan-tier]');
+
+        if (typeof auth !== 'undefined') {
+            auth.onAuthStateChanged((user) => {
+                activeUser = user || null;
+            });
+        }
+
+        function handlePlanSelection(plan) {
+            if (typeof redirectToStripeCheckout === 'function' && activeUser) {
+                redirectToStripeCheckout(activeUser.uid, plan);
+            } else {
+                window.location.href = `signup.html?plan=${plan}`;
+            }
+        }
+
+        planButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                handlePlanSelection(button.dataset.planTier);
+            });
+        });
+    </script>
+</body>
+</html>

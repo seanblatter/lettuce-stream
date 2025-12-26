@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body class="dashboard-body">
+<body class="dashboard-body" data-theme="light">
     <div class="dashboard-atmosphere"></div>
     <div class="dashboard-shell">
         <aside class="dashboard-sidebar">
@@ -37,7 +37,13 @@
                     <h1>Welcome back, <span id="primaryUserName">Creator</span> 👋</h1>
                     <p class="subtitle">Connect every platform, plan your next show, and monitor upcoming experiences from one canvas.</p>
                 </div>
-                <div class="plan-badge" id="planBadge">Trial</div>
+                <div class="header-actions">
+                    <button type="button" class="theme-toggle" id="themeToggle" aria-pressed="false" aria-label="Toggle color theme">
+                        <span class="theme-toggle-icon" id="themeToggleIcon">☀️</span>
+                        <span class="theme-toggle-label" id="themeToggleLabel">Light mode</span>
+                    </button>
+                    <div class="plan-badge" id="planBadge">Trial</div>
+                </div>
             </header>
 
             <section class="upgrade-banner" id="upgradeBanner">
@@ -47,7 +53,7 @@
                 </div>
                 <div class="banner-actions">
                     <button class="btn-primary" data-upgrade-trigger>Upgrade Plan</button>
-                    <a href="index.html#pricing" class="ghost-link">Compare plans</a>
+                    <a href="plans.html" class="ghost-link">Compare plans</a>
                 </div>
             </section>
 
@@ -207,6 +213,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://js.stripe.com/v3/"></script>
 
     <script src="firebase-config.js"></script>
     <script src="auth.js"></script>
@@ -216,6 +223,14 @@
             userId: null,
             plan: 'Trial'
         };
+
+        const bodyElement = document.body;
+        const themeToggle = document.getElementById('themeToggle');
+        const themeToggleIcon = document.getElementById('themeToggleIcon');
+        const themeToggleLabel = document.getElementById('themeToggleLabel');
+        const THEME_STORAGE_KEY = 'lettuce-dashboard-theme';
+
+        initTheme();
 
         document.querySelectorAll('[data-upgrade-trigger]').forEach((btn) => {
             btn.addEventListener('click', () => initiateUpgrade());
@@ -324,6 +339,39 @@
                 console.error('Error signing out:', error);
                 showToast('Unable to sign out. Please try again.');
             });
+        }
+
+        function initTheme() {
+            if (!themeToggle) {
+                return;
+            }
+
+            const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const initialTheme = storedTheme || (prefersDark ? 'dark' : 'light');
+            applyTheme(initialTheme);
+
+            themeToggle.addEventListener('click', () => {
+                const nextTheme = bodyElement.dataset.theme === 'dark' ? 'light' : 'dark';
+                applyTheme(nextTheme);
+                localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+            });
+        }
+
+        function applyTheme(theme) {
+            bodyElement.dataset.theme = theme;
+
+            if (themeToggleIcon) {
+                themeToggleIcon.textContent = theme === 'dark' ? '🌙' : '☀️';
+            }
+
+            if (themeToggleLabel) {
+                themeToggleLabel.textContent = theme === 'dark' ? 'Dark mode' : 'Light mode';
+            }
+
+            if (themeToggle) {
+                themeToggle.setAttribute('aria-pressed', theme === 'dark');
+            }
         }
 
         const toast = document.getElementById('toast');

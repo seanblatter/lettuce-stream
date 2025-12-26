@@ -487,20 +487,103 @@ body {
 
 /* Dashboard Experience */
 body.dashboard-body {
-    background-color: #05060f;
-    background-image: radial-gradient(circle at 10% 20%, rgba(245, 213, 71, 0.15), transparent 40%),
+    --dash-bg: #f8fafc;
+    --dash-atmosphere: radial-gradient(circle at 15% 20%, rgba(245, 213, 71, 0.25), transparent 45%),
+                      radial-gradient(circle at 80% 0%, rgba(125, 211, 252, 0.25), transparent 45%),
+                      radial-gradient(circle at 60% 80%, rgba(196, 181, 253, 0.25), transparent 55%);
+    --dash-atmosphere-opacity: 1;
+    --dash-text-primary: #0f172a;
+    --dash-text-secondary: #475467;
+    --dash-text-muted: #94a3b8;
+    --dash-card-bg: #ffffff;
+    --dash-card-border: rgba(15, 23, 42, 0.08);
+    --dash-panel-bg: rgba(255, 255, 255, 0.95);
+    --dash-panel-border: rgba(15, 23, 42, 0.08);
+    --dash-panel-shadow: 0 30px 60px rgba(15, 23, 42, 0.08);
+    --dash-sidebar-bg: rgba(255, 255, 255, 0.92);
+    --dash-sidebar-border: rgba(15, 23, 42, 0.08);
+    --dash-sidebar-text: #0f172a;
+    --dash-sidebar-muted: rgba(71, 84, 103, 0.8);
+    --dash-chip-bg: rgba(245, 213, 71, 0.2);
+    --dash-chip-color: #854d0e;
+    --dash-chip-outline-color: rgba(15, 23, 42, 0.15);
+    --dash-outline-border: rgba(15, 23, 42, 0.12);
+    --dash-input-bg: #ffffff;
+    --dash-input-border: rgba(15, 23, 42, 0.15);
+    --dash-platform-icon-bg: rgba(245, 213, 71, 0.2);
+    --dash-platform-icon-color: #92400e;
+    --dash-banner-bg: linear-gradient(135deg, #fff7d1, #ffffff);
+    --dash-banner-border: rgba(245, 213, 71, 0.4);
+    --dash-banner-title: #0f172a;
+    --dash-banner-copy: #475467;
+    --dash-ghost-link: #7c3aed;
+    --dash-lock-overlay-bg: rgba(255, 255, 255, 0.88);
+    --dash-lock-overlay-text: #0f172a;
+    --dash-toast-bg: #0f172a;
+    --dash-toast-border: rgba(255, 255, 255, 0.2);
+    --dash-toast-text: #f8fafc;
+    --dash-plan-badge-bg: rgba(15, 23, 42, 0.06);
+    --dash-plan-badge-text: #0f172a;
+    --dash-platform-card-hover: rgba(245, 213, 71, 0.4);
+    --dash-mode-control-bg: rgba(15, 23, 42, 0.04);
+    --dash-mode-control-border: rgba(15, 23, 42, 0.1);
+    --dash-toast-shadow: 0 18px 30px rgba(15, 23, 42, 0.25);
+    min-height: 100vh;
+    color: var(--dash-text-primary);
+    background-color: var(--dash-bg);
+    font-family: 'Space Grotesk', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body.dashboard-body[data-theme="dark"] {
+    --dash-bg: #05060f;
+    --dash-atmosphere: radial-gradient(circle at 10% 20%, rgba(245, 213, 71, 0.15), transparent 40%),
                       radial-gradient(circle at 80% 0%, rgba(14, 165, 233, 0.12), transparent 45%),
                       radial-gradient(circle at 50% 80%, rgba(124, 58, 237, 0.2), transparent 55%);
-    min-height: 100vh;
-    color: #e2e8f0;
-    font-family: 'Space Grotesk', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --dash-atmosphere-opacity: 0.9;
+    --dash-text-primary: #f8fafc;
+    --dash-text-secondary: rgba(226, 232, 240, 0.8);
+    --dash-text-muted: rgba(148, 163, 184, 0.8);
+    --dash-card-bg: rgba(15, 23, 42, 0.85);
+    --dash-card-border: rgba(148, 163, 184, 0.2);
+    --dash-panel-bg: rgba(15, 23, 42, 0.7);
+    --dash-panel-border: rgba(255, 255, 255, 0.08);
+    --dash-panel-shadow: 0 20px 60px rgba(2, 6, 23, 0.5);
+    --dash-sidebar-bg: rgba(9, 9, 18, 0.9);
+    --dash-sidebar-border: rgba(255, 255, 255, 0.06);
+    --dash-sidebar-text: #f8fafc;
+    --dash-sidebar-muted: rgba(226, 232, 240, 0.7);
+    --dash-chip-bg: rgba(245, 213, 71, 0.15);
+    --dash-chip-color: #f5d547;
+    --dash-chip-outline-color: rgba(248, 250, 252, 0.3);
+    --dash-outline-border: rgba(148, 163, 184, 0.3);
+    --dash-input-bg: rgba(15, 23, 42, 0.4);
+    --dash-input-border: rgba(148, 163, 184, 0.3);
+    --dash-platform-icon-bg: rgba(245, 213, 71, 0.15);
+    --dash-platform-icon-color: #f5d547;
+    --dash-banner-bg: rgba(15, 23, 42, 0.7);
+    --dash-banner-border: rgba(255, 255, 255, 0.08);
+    --dash-banner-title: #f8fafc;
+    --dash-banner-copy: rgba(226, 232, 240, 0.7);
+    --dash-ghost-link: rgba(248, 250, 252, 0.85);
+    --dash-lock-overlay-bg: rgba(5, 6, 15, 0.75);
+    --dash-lock-overlay-text: #f8fafc;
+    --dash-toast-bg: rgba(15, 23, 42, 0.85);
+    --dash-toast-border: rgba(248, 250, 252, 0.1);
+    --dash-toast-text: #f8fafc;
+    --dash-plan-badge-bg: rgba(148, 163, 184, 0.15);
+    --dash-plan-badge-text: #f8fafc;
+    --dash-platform-card-hover: rgba(245, 213, 71, 0.6);
+    --dash-mode-control-bg: rgba(255, 255, 255, 0.04);
+    --dash-mode-control-border: rgba(255, 255, 255, 0.08);
+    --dash-toast-shadow: 0 18px 30px rgba(2, 6, 23, 0.8);
 }
 
 .dashboard-atmosphere {
     position: fixed;
     inset: 0;
-    background: linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(2, 6, 23, 0.9));
-    opacity: 0.9;
+    background: var(--dash-atmosphere);
+    opacity: var(--dash-atmosphere-opacity);
     z-index: 0;
 }
 
@@ -513,13 +596,13 @@ body.dashboard-body {
 }
 
 .dashboard-sidebar {
-    background: rgba(9, 9, 18, 0.9);
+    background: var(--dash-sidebar-bg);
     backdrop-filter: blur(16px);
     padding: 40px 32px;
     display: flex;
     flex-direction: column;
     gap: 32px;
-    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    border-right: 1px solid var(--dash-sidebar-border);
 }
 
 .sidebar-brand {
@@ -527,7 +610,7 @@ body.dashboard-body {
     align-items: center;
     gap: 12px;
     font-weight: 600;
-    color: #f8fafc;
+    color: var(--dash-sidebar-text);
     font-size: 18px;
 }
 
@@ -551,12 +634,12 @@ body.dashboard-body {
 
 .user-name {
     font-weight: 600;
-    color: #f1f5f9;
+    color: var(--dash-sidebar-text);
 }
 
 .user-plan {
     font-size: 14px;
-    color: rgba(241, 245, 249, 0.7);
+    color: var(--dash-sidebar-muted);
 }
 
 .sidebar-upgrade {
@@ -571,11 +654,11 @@ body.dashboard-body {
 }
 
 .sidebar-signout {
-    border: 1px solid rgba(148, 163, 184, 0.3);
+    border: 1px solid var(--dash-outline-border);
     border-radius: 999px;
     padding: 10px 20px;
     background: transparent;
-    color: #e2e8f0;
+    color: var(--dash-text-secondary);
     font-weight: 500;
     cursor: pointer;
 }
@@ -585,24 +668,65 @@ body.dashboard-body {
     display: flex;
     flex-direction: column;
     gap: 32px;
+    color: var(--dash-text-primary);
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 32px;
+    flex-wrap: wrap;
 }
 
 .dashboard-header h1 {
     font-size: 36px;
-    color: #f8fafc;
+    color: var(--dash-text-primary);
     margin-bottom: 8px;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 999px;
+    border: 1px solid var(--dash-mode-control-border);
+    background: var(--dash-mode-control-bg);
+    color: var(--dash-text-secondary);
+    padding: 8px 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.theme-toggle:hover {
+    transform: translateY(-1px);
+    border-color: var(--primary-yellow);
+}
+
+.theme-toggle-icon {
+    font-size: 16px;
+}
+
+.theme-toggle-label {
+    font-size: 14px;
 }
 
 .eyebrow {
     text-transform: uppercase;
     letter-spacing: 0.2em;
     font-size: 12px;
-    color: rgba(226, 232, 240, 0.7);
+    color: var(--dash-text-muted);
     margin-bottom: 8px;
 }
 
 .subtitle {
-    color: rgba(226, 232, 240, 0.75);
+    color: var(--dash-text-secondary);
     max-width: 640px;
 }
 
@@ -610,8 +734,8 @@ body.dashboard-body {
     align-self: flex-start;
     padding: 10px 18px;
     border-radius: 999px;
-    background: rgba(148, 163, 184, 0.15);
-    color: #f8fafc;
+    background: var(--dash-plan-badge-bg);
+    color: var(--dash-plan-badge-text);
     font-weight: 600;
 }
 
@@ -622,18 +746,18 @@ body.dashboard-body {
     gap: 32px;
     padding: 32px;
     border-radius: 24px;
-    background: rgba(15, 23, 42, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--dash-banner-bg);
+    border: 1px solid var(--dash-banner-border);
 }
 
 .banner-title {
     font-size: 24px;
     font-weight: 600;
-    color: #f8fafc;
+    color: var(--dash-banner-title);
 }
 
 .banner-copy {
-    color: rgba(226, 232, 240, 0.7);
+    color: var(--dash-banner-copy);
 }
 
 .banner-actions {
@@ -643,21 +767,21 @@ body.dashboard-body {
 }
 
 .ghost-link {
-    color: rgba(248, 250, 252, 0.8);
+    color: var(--dash-ghost-link);
     text-decoration: none;
     font-weight: 600;
 }
 
 .panel {
-    background: rgba(15, 23, 42, 0.65);
+    background: var(--dash-panel-bg);
     border-radius: 24px;
     padding: 32px;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    box-shadow: 0 20px 60px rgba(15, 23, 42, 0.3);
+    border: 1px solid var(--dash-panel-border);
+    box-shadow: var(--dash-panel-shadow);
 }
 
 .section-heading h2 {
-    color: #f8fafc;
+    color: var(--dash-text-primary);
     font-size: 28px;
     margin-bottom: 8px;
 }
@@ -672,8 +796,8 @@ body.dashboard-body {
 .platform-card {
     padding: 20px;
     border-radius: 20px;
-    background: rgba(15, 23, 42, 0.9);
-    border: 1px solid rgba(148, 163, 184, 0.2);
+    background: var(--dash-card-bg);
+    border: 1px solid var(--dash-card-border);
     display: grid;
     gap: 12px;
     transition: transform 0.2s ease, border-color 0.2s ease;
@@ -681,38 +805,42 @@ body.dashboard-body {
 
 .platform-card:hover {
     transform: translateY(-4px);
-    border-color: rgba(245, 213, 71, 0.6);
+    border-color: var(--dash-platform-card-hover);
 }
 
 .platform-icon {
     width: 48px;
     height: 48px;
     border-radius: 16px;
-    background: rgba(245, 213, 71, 0.15);
-    color: #f5d547;
+    background: var(--dash-platform-icon-bg);
+    color: var(--dash-platform-icon-color);
     display: grid;
     place-items: center;
     font-weight: 600;
 }
 
 .platform-card h3 {
-    color: #f8fafc;
+    color: var(--dash-text-primary);
     margin-bottom: 4px;
 }
 
 .platform-card p {
-    color: rgba(226, 232, 240, 0.7);
+    color: var(--dash-text-secondary);
     font-size: 14px;
 }
 
 .platform-connect {
-    border: 1px solid rgba(148, 163, 184, 0.4);
+    border: 1px solid var(--dash-outline-border);
     border-radius: 999px;
     padding: 10px 18px;
     background: transparent;
-    color: #f8fafc;
+    color: var(--dash-text-primary);
     font-weight: 600;
     cursor: pointer;
+}
+
+.platform-connect:hover {
+    border-color: var(--dash-platform-card-hover);
 }
 
 .stream-lab {
@@ -722,10 +850,10 @@ body.dashboard-body {
 }
 
 .lab-card {
-    background: rgba(2, 6, 23, 0.7);
+    background: var(--dash-card-bg);
     border-radius: 24px;
     padding: 24px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--dash-card-border);
     display: flex;
     flex-direction: column;
     gap: 24px;
@@ -738,23 +866,23 @@ body.dashboard-body {
 }
 
 .lab-header h3 {
-    color: #f8fafc;
+    color: var(--dash-text-primary);
     font-size: 22px;
 }
 
 .chip {
     padding: 6px 12px;
     border-radius: 999px;
-    background: rgba(245, 213, 71, 0.15);
-    color: #f5d547;
+    background: var(--dash-chip-bg);
+    color: var(--dash-chip-color);
     font-weight: 600;
     font-size: 13px;
 }
 
 .chip-outline {
-    border: 1px solid rgba(248, 250, 252, 0.3);
+    border: 1px solid var(--dash-chip-outline-color);
     background: transparent;
-    color: rgba(248, 250, 252, 0.7);
+    color: var(--dash-text-secondary);
 }
 
 .lab-body {
@@ -768,16 +896,16 @@ body.dashboard-body {
     flex-direction: column;
     gap: 8px;
     font-size: 14px;
-    color: rgba(226, 232, 240, 0.7);
+    color: var(--dash-text-secondary);
 }
 
 .field input,
 .field select {
     padding: 12px 14px;
     border-radius: 12px;
-    border: 1px solid rgba(148, 163, 184, 0.3);
-    background: rgba(15, 23, 42, 0.4);
-    color: #f8fafc;
+    border: 1px solid var(--dash-input-border);
+    background: var(--dash-input-bg);
+    color: var(--dash-text-primary);
 }
 
 .mode-picker {
@@ -787,17 +915,19 @@ body.dashboard-body {
 
 .mode-picker label {
     flex: 1;
-    border: 1px solid rgba(148, 163, 184, 0.3);
+    border: 1px solid var(--dash-mode-control-border);
     border-radius: 16px;
     padding: 12px;
     display: flex;
     gap: 8px;
     align-items: center;
+    background: var(--dash-mode-control-bg);
     cursor: pointer;
+    color: var(--dash-text-secondary);
 }
 
 .mode-picker input {
-    accent-color: #f5d547;
+    accent-color: var(--primary-yellow);
 }
 
 .timeline {
@@ -810,15 +940,15 @@ body.dashboard-body {
 .timeline-card {
     padding: 16px;
     border-radius: 16px;
-    background: rgba(2, 6, 23, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--dash-card-bg);
+    border: 1px solid var(--dash-card-border);
     display: flex;
     flex-direction: column;
     gap: 4px;
 }
 
 .timeline-card span {
-    color: rgba(226, 232, 240, 0.6);
+    color: var(--dash-text-muted);
     font-size: 13px;
 }
 
@@ -826,8 +956,9 @@ body.dashboard-body {
     text-align: center;
     padding: 40px 16px;
     border-radius: 20px;
-    background: rgba(15, 23, 42, 0.45);
-    border: 1px dashed rgba(248, 250, 252, 0.2);
+    background: var(--dash-mode-control-bg);
+    border: 1px dashed var(--dash-outline-border);
+    color: var(--dash-text-secondary);
 }
 
 .lock-required.locked {
@@ -839,8 +970,8 @@ body.dashboard-body {
     content: 'Upgrade to unlock';
     position: absolute;
     inset: 0;
-    background: rgba(5, 6, 15, 0.75);
-    color: #f8fafc;
+    background: var(--dash-lock-overlay-bg);
+    color: var(--dash-lock-overlay-text);
     display: grid;
     place-items: center;
     font-weight: 600;
@@ -861,18 +992,174 @@ body.dashboard-body {
     right: 40px;
     padding: 16px 20px;
     border-radius: 16px;
-    background: rgba(15, 23, 42, 0.85);
-    color: #f8fafc;
-    border: 1px solid rgba(248, 250, 252, 0.1);
+    background: var(--dash-toast-bg);
+    color: var(--dash-toast-text);
+    border: 1px solid var(--dash-toast-border);
     opacity: 0;
     transform: translateY(20px);
     transition: all 0.2s ease;
     z-index: 10;
+    box-shadow: var(--dash-toast-shadow);
 }
 
 .toast.visible {
     opacity: 1;
     transform: translateY(0);
+}
+
+/* Plans Comparison */
+body.plans-body {
+    background: var(--gray-100);
+    min-height: 100vh;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: var(--text-primary);
+}
+
+.plans-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 32px;
+    background: var(--background);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.plans-nav .logo {
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+    font-size: 20px;
+    color: var(--text-primary);
+}
+
+.plans-nav .nav-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.plans-main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+}
+
+.plans-hero {
+    text-align: center;
+    margin-bottom: 48px;
+}
+
+.plans-hero h1 {
+    font-size: 44px;
+    margin-bottom: 16px;
+}
+
+.plans-hero p {
+    color: var(--text-secondary);
+    max-width: 640px;
+    margin: 0 auto;
+}
+
+.plans-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    margin-bottom: 48px;
+}
+
+.plan-card {
+    background: var(--background);
+    border: 2px solid var(--border-color);
+    border-radius: 16px;
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.plan-card.featured {
+    border-color: var(--primary-yellow);
+    box-shadow: var(--shadow-lg);
+}
+
+.plan-price {
+    font-size: 40px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.plan-price span {
+    font-size: 16px;
+    color: var(--text-secondary);
+}
+
+.plan-description {
+    color: var(--text-secondary);
+}
+
+.plan-feature-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.plan-feature-list li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+}
+
+.plan-feature-list li::before {
+    content: '✔';
+    color: var(--primary-yellow);
+    font-weight: 700;
+}
+
+.plans-table {
+    background: var(--background);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 48px;
+}
+
+.plans-table h3 {
+    margin-bottom: 16px;
+}
+
+.plans-table .table-scroll {
+    overflow-x: auto;
+}
+
+.plans-table table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.plans-table th,
+.plans-table td {
+    padding: 14px;
+    border: 1px solid var(--border-color);
+    text-align: left;
+    font-size: 15px;
+}
+
+.plans-footer-cta {
+    text-align: center;
+    background: linear-gradient(135deg, var(--yellow-light), #ffffff);
+    border-radius: 24px;
+    padding: 48px 24px;
+    border: 1px solid var(--border-color);
+}
+
+.plans-footer-cta h3 {
+    font-size: 28px;
+    margin-bottom: 12px;
+}
+
+.plans-footer-cta p {
+    color: var(--text-secondary);
+    margin-bottom: 24px;
 }
 
 /* Responsive Design */
@@ -933,7 +1220,7 @@ body.dashboard-body {
         justify-content: space-between;
         padding: 24px;
         border-right: none;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        border-bottom: 1px solid var(--dash-sidebar-border);
     }
 
     .dashboard-main {
@@ -949,6 +1236,21 @@ body.dashboard-body {
         width: 100%;
         flex-direction: column;
         align-items: stretch;
+    }
+
+    .plans-nav {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .plans-nav .nav-actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .plans-grid {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -983,5 +1285,13 @@ body.dashboard-body {
 
     .stream-lab {
         grid-template-columns: 1fr;
+    }
+
+    .plans-nav {
+        padding: 24px;
+    }
+
+    .plans-footer-cta {
+        padding: 32px 16px;
     }
 }

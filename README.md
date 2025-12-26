@@ -33,6 +33,7 @@ lettuce-stream/
 ├── signin.html         # Sign-in page
 ├── trial-welcome.html  # Post-signup welcome screen
 ├── dashboard.html      # Streaming dashboard experience
+├── plans.html          # Plans comparison page
 ├── styles.css          # Main styles for landing page
 ├── auth.css            # Styles for authentication pages
 ├── app.js              # Main JavaScript for landing page
