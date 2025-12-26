@@ -20,5 +20,8 @@
   "bugs": {
     "url": "https://github.com/seanblatter/lettuce-stream/issues"
   },
-  "homepage": "https://github.com/seanblatter/lettuce-stream#readme"
+  "homepage": "https://github.com/seanblatter/lettuce-stream#readme",
+  "dependencies": {
+    "stripe": "^20.1.0"
+  }
 }

@@ -7,10 +7,6 @@ const authHelpers = (typeof window !== 'undefined' && window.authHelpers)
     : (typeof require !== 'undefined' ? require('./auth-helpers') : helperFallback);
 const { getErrorMessage } = authHelpers;
 
-// Stripe Configuration
-// Replace with your actual Stripe publishable key
-const stripe = typeof Stripe !== 'undefined' ? Stripe('pk_test_YOUR_PUBLISHABLE_KEY') : null;
-
 // Check if user is already logged in
 auth.onAuthStateChanged((user) => {
     if (user && window.location.pathname !== '/dashboard.html') {
@@ -193,28 +189,11 @@ if (googleSignInBtn) {
     });
 }
 
-// Stripe Checkout Redirect
-async function redirectToStripeCheckout(userId, plan) {
-    try {
-        // In a real implementation, you would call your backend to create a Stripe Checkout session
-        // For now, we'll redirect to a placeholder dashboard
-        
-        // Example of how you would create a checkout session:
-        // const response = await fetch('/api/create-checkout-session', {
-        //     method: 'POST',
-        //     headers: { 'Content-Type': 'application/json' },
-        //     body: JSON.stringify({ userId, plan })
-        // });
-        // const session = await response.json();
-        // const result = await stripe.redirectToCheckout({ sessionId: session.id });
-        
-        // For demonstration purposes, redirect to dashboard
-        window.location.href = 'dashboard.html';
-        
-    } catch (error) {
-        console.error('Error redirecting to Stripe:', error);
-        alert('There was an error processing your payment. Please try again.');
-    }
+// Paid plan checkout routing
+function redirectToStripeCheckout(userId, plan) {
+    const normalizedPlan = typeof plan === 'string' && plan.trim() ? plan.trim().toLowerCase() : 'pro';
+    const checkoutUrl = `checkout.html?plan=${encodeURIComponent(normalizedPlan)}`;
+    window.location.href = checkoutUrl;
 }
 
 // Helper Functions

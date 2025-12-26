@@ -150,11 +150,20 @@
         }
 
         function handlePlanSelection(plan) {
-            if (typeof redirectToStripeCheckout === 'function' && activeUser) {
-                redirectToStripeCheckout(activeUser.uid, plan);
-            } else {
-                window.location.href = `signup.html?plan=${plan}`;
+            if (activeUser) {
+                startPlanCheckout(plan);
+                return;
             }
+            window.location.href = `signup.html?plan=${plan}`;
+        }
+
+        function startPlanCheckout(plan) {
+            if (typeof redirectToStripeCheckout === 'function') {
+                const userId = activeUser && activeUser.uid ? activeUser.uid : '';
+                redirectToStripeCheckout(userId, plan);
+                return;
+            }
+            window.location.href = `checkout.html?plan=${plan}`;
         }
 
         planButtons.forEach((button) => {

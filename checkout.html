@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Checkout - Lettuce Stream</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="checkout-body">
+    <div class="checkout-atmosphere"></div>
+
+    <nav class="checkout-nav">
+        <a href="dashboard.html" class="checkout-logo">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <rect width="32" height="32" rx="8" fill="#F5D547" />
+                <path d="M12 9L22 16L12 23V9Z" fill="#0F172A" />
+            </svg>
+            <span>Lettuce Stream</span>
+        </a>
+        <div class="checkout-nav-actions">
+            <button type="button" class="ghost-link" id="cancelCheckout">Return to plans</button>
+            <a href="dashboard.html" class="btn-secondary">Back to dashboard</a>
+        </div>
+    </nav>
+
+    <main class="checkout-shell">
+        <section class="checkout-summary" aria-labelledby="summaryPlanLabel">
+            <div class="summary-header">
+                <p class="eyebrow">Selected plan</p>
+                <h1 id="summaryPlanLabel">Pro plan</h1>
+                <p class="summary-price" id="summaryPlanPrice">$29 / month</p>
+                <p class="summary-copy" id="summaryPlanCopy">Best for growing channels that need every platform and serious automation.</p>
+            </div>
+            <div class="summary-meta">
+                <div>
+                    <p class="summary-label">Billing cadence</p>
+                    <p class="summary-value">Monthly</p>
+                </div>
+                <div>
+                    <p class="summary-label">Account</p>
+                    <p class="summary-value" id="checkoutUserEmail">Checking...</p>
+                </div>
+            </div>
+            <ul class="summary-list" id="summaryFeatureList" aria-label="Plan highlights">
+                <li>Unlimited destinations unlocked</li>
+                <li>Advanced automation toolkit</li>
+                <li>Priority studio support</li>
+            </ul>
+            <div class="summary-footnote">
+                <p>Need a purchase order or custom paperwork? Email <a href="mailto:hello@lettucestream.com">hello@lettucestream.com</a> and our team will help.</p>
+            </div>
+        </section>
+
+        <section class="checkout-panel" aria-live="polite">
+            <div class="panel-header">
+                <p class="eyebrow">Complete payment</p>
+                <h2 id="panelTitle">Unlock your plan in minutes</h2>
+                <p>Stripe secures this payment. Your workspace unlocks the moment the payment succeeds.</p>
+            </div>
+            <form id="payment-form" class="checkout-form">
+                <div id="payment-element" class="payment-element" aria-label="Payment details"></div>
+                <div class="checkout-actions">
+                    <button type="submit" class="btn-primary checkout-submit" id="submitButton">
+                        <span id="submitLabel">Start plan</span>
+                        <span class="button-spinner" id="submitSpinner" aria-hidden="true"></span>
+                    </button>
+                    <button type="button" class="checkout-support" id="needHelp">Chat with support</button>
+                </div>
+                <p id="payment-message" class="payment-message" role="status" aria-live="assertive" hidden></p>
+            </form>
+        </section>
+    </main>
+
+    <div class="checkout-loading" id="checkoutLoading" role="status" aria-live="polite" hidden>
+        <div class="loading-indicator"></div>
+        <p>Preparing secure checkout...</p>
+    </div>
+
+    <!-- Firebase & Stripe -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://js.stripe.com/v3/"></script>
+
+    <script src="firebase-config.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const PLAN_CATALOG = {
+                starter: {
+                    label: 'Starter',
+                    priceLabel: '$9 / month',
+                    description: 'For emerging creators learning multi-streaming fundamentals.',
+                    features: [
+                        'Stream to 2 destinations',
+                        '1080p HD output',
+                        'Basic analytics and alerts'
+                    ]
+                },
+                pro: {
+                    label: 'Pro',
+                    priceLabel: '$29 / month',
+                    description: 'Best for growing channels that need every platform and serious automation.',
+                    features: [
+                        'All 8 destinations unlocked',
+                        '4K streaming + recording',
+                        'Advanced analytics & overlays'
+                    ]
+                },
+                enterprise: {
+                    label: 'Enterprise',
+                    priceLabel: '$99 / month',
+                    description: 'For studios needing collaboration, compliance, and white-glove care.',
+                    features: [
+                        'Everything in Pro',
+                        '5 team seats included',
+                        'Dedicated account manager'
+                    ]
+                }
+            };
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const requestedPlan = (urlParams.get('plan') || '').toLowerCase();
+            const activePlanKey = PLAN_CATALOG[requestedPlan] ? requestedPlan : 'pro';
+            const activePlan = PLAN_CATALOG[activePlanKey];
+            const checkoutReturnUrl = new URL(`checkout.html?plan=${activePlanKey}`, window.location.href).toString();
+            let activeUser = null;
+            let checkoutStripe = null;
+            let checkoutElements = null;
+            let hasRecordedPayment = false;
+
+            const summaryPlanLabel = document.getElementById('summaryPlanLabel');
+            const summaryPlanPrice = document.getElementById('summaryPlanPrice');
+            const summaryPlanCopy = document.getElementById('summaryPlanCopy');
+            const summaryFeatureList = document.getElementById('summaryFeatureList');
+            const panelTitle = document.getElementById('panelTitle');
+            const paymentMessage = document.getElementById('payment-message');
+            const paymentForm = document.getElementById('payment-form');
+            const submitButton = document.getElementById('submitButton');
+            const submitLabel = document.getElementById('submitLabel');
+            const submitSpinner = document.getElementById('submitSpinner');
+            const loadingOverlay = document.getElementById('checkoutLoading');
+            const userEmailEl = document.getElementById('checkoutUserEmail');
+            const cancelButton = document.getElementById('cancelCheckout');
+            const helpButton = document.getElementById('needHelp');
+
+            renderPlanSummary();
+            wireNavigation();
+
+            if (typeof auth === 'undefined') {
+                showMessage('Firebase is not initialized. Please refresh the page.', 'error');
+                return;
+            }
+
+            auth.onAuthStateChanged(async (user) => {
+                if (!user) {
+                    window.location.href = `signin.html?plan=${activePlanKey}`;
+                    return;
+                }
+
+                activeUser = user;
+                userEmailEl.textContent = user.email || 'Signed in';
+                await initializeCheckout();
+            });
+
+            paymentForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                if (!checkoutStripe || !checkoutElements) {
+                    showMessage('Checkout is still loading. Please wait a second and try again.', 'error');
+                    return;
+                }
+
+                setButtonLoading(true);
+
+                try {
+                    const { error, paymentIntent } = await checkoutStripe.confirmPayment({
+                        elements: checkoutElements,
+                        confirmParams: {
+                            return_url: checkoutReturnUrl
+                        },
+                        redirect: 'if_required'
+                    });
+
+                    if (error) {
+                        showMessage(error.message || 'Payment could not be completed.', 'error');
+                    } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+                        await finalizeUpgrade(paymentIntent);
+                    }
+                } catch (error) {
+                    console.error('Payment confirmation error:', error);
+                    showMessage('Unexpected error during payment confirmation. Please retry.', 'error');
+                } finally {
+                    setButtonLoading(false);
+                }
+            });
+
+            async function initializeCheckout() {
+                setOverlayVisible(true);
+                showMessage('', 'info', true);
+
+                try {
+                    const response = await fetch('/api/create-payment-intent', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            plan: activePlanKey,
+                            customerEmail: activeUser?.email || undefined,
+                            uid: activeUser?.uid || undefined
+                        })
+                    });
+
+                    const payload = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(payload?.error || 'Unable to start checkout.');
+                    }
+
+                    applyServerPricing(payload);
+                    checkoutStripe = window.Stripe(payload.publishableKey);
+                    checkoutElements = checkoutStripe.elements({
+                        clientSecret: payload.clientSecret,
+                        appearance: {
+                            theme: 'stripe',
+                            variables: {
+                                colorPrimary: '#0F172A',
+                                colorBackground: '#FFFFFF',
+                                borderRadius: '12px',
+                                fontFamily: 'Inter, system-ui, -apple-system'
+                            }
+                        }
+                    });
+
+                    const paymentElement = checkoutElements.create('payment', {
+                        layout: {
+                            type: 'accordion'
+                        }
+                    });
+                    paymentElement.mount('#payment-element');
+
+                    await checkPaymentStatus();
+                } catch (error) {
+                    console.error('Checkout initialization failed:', error);
+                    showMessage(error.message || 'Checkout could not be initialized.', 'error');
+                } finally {
+                    setOverlayVisible(false);
+                }
+            }
+
+            async function checkPaymentStatus() {
+                if (!checkoutStripe) {
+                    return;
+                }
+                const clientSecret = new URLSearchParams(window.location.search).get('payment_intent_client_secret');
+                if (!clientSecret) {
+                    return;
+                }
+
+                const { paymentIntent } = await checkoutStripe.retrievePaymentIntent(clientSecret);
+                if (!paymentIntent) {
+                    return;
+                }
+
+                switch (paymentIntent.status) {
+                    case 'succeeded':
+                        await finalizeUpgrade(paymentIntent);
+                        break;
+                    case 'processing':
+                        showMessage('Your payment is processing. We will refresh the page automatically.', 'info');
+                        break;
+                    case 'requires_payment_method':
+                        showMessage('Payment was not successful. Please re-enter your details.', 'error');
+                        break;
+                    default:
+                        showMessage(`Payment status: ${paymentIntent.status}`, 'info');
+                }
+            }
+
+            async function finalizeUpgrade(paymentIntent) {
+                if (hasRecordedPayment) {
+                    return;
+                }
+                hasRecordedPayment = true;
+                showMessage('Payment succeeded. Unlocking your workspace…', 'success');
+
+                try {
+                    await db.collection('users').doc(activeUser.uid).set({
+                        plan: activePlan.label,
+                        status: 'active',
+                        upgradedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        lastPaymentIntent: paymentIntent?.id || null
+                    }, { merge: true });
+                } catch (error) {
+                    console.error('Unable to update plan status:', error);
+                }
+
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1500);
+            }
+
+            function applyServerPricing(payload) {
+                if (!payload || typeof payload.amount !== 'number') {
+                    return;
+                }
+                const currency = (payload.currency || 'usd').toUpperCase();
+                const formatter = new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency
+                });
+                summaryPlanPrice.textContent = `${formatter.format(payload.amount / 100)} / month`;
+                submitLabel.textContent = `Start ${activePlan.label}`;
+                panelTitle.textContent = `Activate ${activePlan.label}`;
+            }
+
+            function renderPlanSummary() {
+                summaryPlanLabel.textContent = `${activePlan.label} plan`;
+                summaryPlanPrice.textContent = activePlan.priceLabel;
+                summaryPlanCopy.textContent = activePlan.description;
+                summaryFeatureList.innerHTML = '';
+                activePlan.features.forEach((feature) => {
+                    const item = document.createElement('li');
+                    item.textContent = feature;
+                    summaryFeatureList.appendChild(item);
+                });
+            }
+
+            function showMessage(content, status = 'info', hide = false) {
+                if (hide || !content) {
+                    paymentMessage.hidden = true;
+                    paymentMessage.textContent = '';
+                    paymentMessage.dataset.status = '';
+                    return;
+                }
+                paymentMessage.hidden = false;
+                paymentMessage.textContent = content;
+                paymentMessage.dataset.status = status;
+            }
+
+            function setButtonLoading(isLoading) {
+                submitButton.disabled = isLoading;
+                submitSpinner.style.opacity = isLoading ? 1 : 0;
+                submitSpinner.style.visibility = isLoading ? 'visible' : 'hidden';
+            }
+
+            function setOverlayVisible(isVisible) {
+                loadingOverlay.hidden = !isVisible;
+            }
+
+            function wireNavigation() {
+                cancelButton.addEventListener('click', () => {
+                    window.location.href = 'plans.html#billing';
+                });
+
+                helpButton.addEventListener('click', () => {
+                    window.location.href = 'mailto:hello@lettucestream.com';
+                });
+            }
+        });
+    </script>
+</body>
+</html>
