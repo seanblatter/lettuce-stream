@@ -618,6 +618,7 @@ body.dashboard-body[data-theme="dark"] {
     display: flex;
     align-items: center;
     gap: 16px;
+    position: relative;
 }
 
 .user-initial {
@@ -640,6 +641,103 @@ body.dashboard-body[data-theme="dark"] {
 .user-plan {
     font-size: 14px;
     color: var(--dash-sidebar-muted);
+}
+
+.user-meta-button {
+    background: transparent;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-items: flex-start;
+    padding: 0;
+    cursor: pointer;
+    color: inherit;
+    font: inherit;
+    flex: 1;
+    text-align: left;
+}
+
+.user-meta-button:focus-visible {
+    outline: 2px solid var(--primary-yellow);
+    outline-offset: 4px;
+    border-radius: 8px;
+}
+
+.user-dropdown {
+    position: absolute;
+    top: calc(100% + 12px);
+    right: 0;
+    background: var(--dash-card-bg);
+    border: 1px solid var(--dash-card-border);
+    border-radius: 16px;
+    padding: 12px;
+    box-shadow: var(--dash-panel-shadow);
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 180px;
+    z-index: 3;
+}
+
+.user-dropdown.open {
+    display: flex;
+}
+
+.user-dropdown button {
+    background: transparent;
+    border: none;
+    text-align: left;
+    padding: 8px 10px;
+    border-radius: 10px;
+    font-weight: 500;
+    color: var(--dash-text-primary);
+    cursor: pointer;
+}
+
+.user-dropdown button:hover {
+    background: var(--dash-mode-control-bg);
+}
+
+.sidebar-section-label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--dash-text-muted);
+    margin-top: 8px;
+    margin-bottom: 4px;
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sidebar-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    text-decoration: none;
+    color: var(--dash-text-secondary);
+    font-weight: 500;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.sidebar-nav-item .nav-icon {
+    font-size: 16px;
+}
+
+.sidebar-nav-item:hover {
+    background: var(--dash-mode-control-bg);
+    color: var(--dash-text-primary);
+}
+
+.sidebar-nav-item.active {
+    background: rgba(245, 213, 71, 0.2);
+    color: var(--dash-text-primary);
 }
 
 .sidebar-upgrade {

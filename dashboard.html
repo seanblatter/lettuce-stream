@@ -20,15 +20,38 @@
                 </svg>
                 <span>Lettuce Stream</span>
             </div>
-            <div class="sidebar-user">
+            <div class="sidebar-user" id="sidebarUser">
                 <div class="user-initial" id="sidebarUserInitial">LS</div>
-                <div>
+                <button class="user-meta-button" id="userMenuButton" aria-haspopup="true" aria-expanded="false">
                     <p class="user-name" id="sidebarUserName">Creator</p>
                     <p class="user-plan" id="sidebarUserPlan">Trial</p>
+                </button>
+                <div class="user-dropdown" id="userDropdown" role="menu">
+                    <button type="button" data-user-action="billing">Billing</button>
+                    <button type="button" data-user-action="settings">Settings</button>
+                    <button type="button" data-user-action="logout">Log Out</button>
                 </div>
             </div>
+            <p class="sidebar-section-label">The Lake</p>
+            <nav class="sidebar-nav" aria-label="Primary">
+                <a class="sidebar-nav-item active" href="dashboard.html" aria-current="page">
+                    <span class="nav-icon" aria-hidden="true">🏠</span>
+                    <span>Home</span>
+                </a>
+                <a class="sidebar-nav-item" href="dashboard.html#channels">
+                    <span class="nav-icon" aria-hidden="true">📡</span>
+                    <span>Channels</span>
+                </a>
+                <a class="sidebar-nav-item" href="dashboard.html#analytics">
+                    <span class="nav-icon" aria-hidden="true">📊</span>
+                    <span>Analytics</span>
+                </a>
+                <a class="sidebar-nav-item" href="dashboard.html#storage">
+                    <span class="nav-icon" aria-hidden="true">💾</span>
+                    <span>Storage</span>
+                </a>
+            </nav>
             <button class="sidebar-upgrade" data-upgrade-trigger>Upgrade Account</button>
-            <button class="sidebar-signout" onclick="signOut()">Sign Out</button>
         </aside>
         <main class="dashboard-main">
             <header class="dashboard-header">
@@ -228,9 +251,12 @@
         const themeToggle = document.getElementById('themeToggle');
         const themeToggleIcon = document.getElementById('themeToggleIcon');
         const themeToggleLabel = document.getElementById('themeToggleLabel');
+        const userMenuButton = document.getElementById('userMenuButton');
+        const userDropdown = document.getElementById('userDropdown');
         const THEME_STORAGE_KEY = 'lettuce-dashboard-theme';
 
         initTheme();
+        initUserMenu();
 
         document.querySelectorAll('[data-upgrade-trigger]').forEach((btn) => {
             btn.addEventListener('click', () => initiateUpgrade());
@@ -339,6 +365,67 @@
                 console.error('Error signing out:', error);
                 showToast('Unable to sign out. Please try again.');
             });
+        }
+
+        function initUserMenu() {
+            if (!userMenuButton || !userDropdown) {
+                return;
+            }
+
+            userMenuButton.addEventListener('click', (event) => {
+                event.stopPropagation();
+                toggleUserMenu();
+            });
+
+            document.addEventListener('click', (event) => {
+                if (!userDropdown.contains(event.target) && !userMenuButton.contains(event.target)) {
+                    closeUserMenu();
+                }
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') {
+                    closeUserMenu();
+                }
+            });
+
+            userDropdown.querySelectorAll('[data-user-action]').forEach((button) => {
+                button.addEventListener('click', () => {
+                    handleUserMenuAction(button.dataset.userAction);
+                });
+            });
+        }
+
+        function toggleUserMenu(forceState) {
+            if (!userMenuButton || !userDropdown) {
+                return;
+            }
+
+            const isExpanded = userMenuButton.getAttribute('aria-expanded') === 'true';
+            const shouldOpen = typeof forceState === 'boolean' ? forceState : !isExpanded;
+            userMenuButton.setAttribute('aria-expanded', String(shouldOpen));
+            userDropdown.classList.toggle('open', shouldOpen);
+        }
+
+        function closeUserMenu() {
+            toggleUserMenu(false);
+        }
+
+        function handleUserMenuAction(action) {
+            closeUserMenu();
+            switch (action) {
+                case 'billing':
+                    window.location.href = 'plans.html#billing';
+                    break;
+                case 'settings':
+                    showToast('Settings coming soon.');
+                    break;
+                case 'logout':
+                    signOut();
+                    break;
+                default:
+                    break;
+            }
         }
 
         function initTheme() {
