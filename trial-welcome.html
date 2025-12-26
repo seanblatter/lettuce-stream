@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trial Welcome - Lettuce Stream</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .dashboard-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--yellow-light) 0%, var(--background) 100%);
+            padding: 48px 24px;
+            text-align: center;
+        }
+        .dashboard-content {
+            max-width: 600px;
+        }
+        .dashboard-content h1 {
+            font-size: 48px;
+            margin-bottom: 24px;
+        }
+        .dashboard-content p {
+            font-size: 18px;
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+        }
+        .user-info {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-content">
+            <div class="logo" style="justify-content: center; margin-bottom: 32px;">
+                <svg width="48" height="48" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="32" height="32" rx="8" fill="#F5D547"/>
+                    <path d="M12 9L22 16L12 23V9Z" fill="#2D3748"/>
+                </svg>
+            </div>
+            
+            <h1>Welcome to Lettuce Stream! 🎉</h1>
+            <p>Your trial workspace is live. Take a moment to explore, then continue into your dashboard whenever you're ready.</p>
+            
+            <div class="user-info">
+                <p style="margin: 0; font-weight: 600;" id="userEmail">Loading user info...</p>
+                <p style="margin: 8px 0 0 0; font-size: 14px; color: var(--text-light);">Your 14-day free trial has started</p>
+            </div>
+            
+            <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+                <a href="dashboard.html" class="btn-primary btn-large">Go to Home</a>
+                <button onclick="signOut()" class="btn-secondary btn-large">Sign Out</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <script src="firebase-config.js"></script>
+    <script>
+        // Check if user is logged in
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                document.getElementById('userEmail').textContent = user.email;
+            } else {
+                // Not logged in, redirect to signin
+                window.location.href = 'signin.html';
+            }
+        });
+        
+        function signOut() {
+            auth.signOut().then(() => {
+                window.location.href = 'index.html';
+            }).catch((error) => {
+                console.error('Error signing out:', error);
+            });
+        }
+    </script>
+</body>
+</html>

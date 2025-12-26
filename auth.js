@@ -84,7 +84,7 @@ if (signupForm) {
             
             // Allow the user into the product even if profile write fails
             setTimeout(() => {
-                window.location.href = 'dashboard.html';
+                window.location.href = 'trial-welcome.html';
             }, 1200);
             
         } catch (error) {
@@ -170,7 +170,7 @@ if (googleSignInBtn) {
                     console.warn('Unable to store Google user profile.', profileError);
                 }
                 
-                window.location.href = 'dashboard.html';
+                window.location.href = 'trial-welcome.html';
             } else {
                 // Existing user - redirect to dashboard
                 window.location.href = 'dashboard.html';

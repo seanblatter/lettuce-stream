@@ -7,87 +7,332 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        .dashboard-container {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, var(--yellow-light) 0%, var(--background) 100%);
-            padding: 48px 24px;
-            text-align: center;
-        }
-        .dashboard-content {
-            max-width: 600px;
-        }
-        .dashboard-content h1 {
-            font-size: 48px;
-            margin-bottom: 24px;
-        }
-        .dashboard-content p {
-            font-size: 18px;
-            color: var(--text-secondary);
-            margin-bottom: 32px;
-        }
-        .user-info {
-            background: white;
-            padding: 24px;
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-            margin-bottom: 24px;
-        }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body>
-    <div class="dashboard-container">
-        <div class="dashboard-content">
-            <div class="logo" style="justify-content: center; margin-bottom: 32px;">
-                <svg width="48" height="48" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+<body class="dashboard-body">
+    <div class="dashboard-atmosphere"></div>
+    <div class="dashboard-shell">
+        <aside class="dashboard-sidebar">
+            <div class="sidebar-brand">
+                <svg width="36" height="36" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <rect width="32" height="32" rx="8" fill="#F5D547"/>
-                    <path d="M12 9L22 16L12 23V9Z" fill="#2D3748"/>
+                    <path d="M12 9L22 16L12 23V9Z" fill="#0F172A"/>
                 </svg>
+                <span>Lettuce Stream</span>
             </div>
-            
-            <h1>Welcome to Lettuce Stream! 🎉</h1>
-            <p>Your account has been successfully created. You're all set to start streaming to multiple platforms.</p>
-            
-            <div class="user-info">
-                <p style="margin: 0; font-weight: 600;" id="userEmail">Loading user info...</p>
-                <p style="margin: 8px 0 0 0; font-size: 14px; color: var(--text-light);">Your 14-day free trial has started</p>
+            <div class="sidebar-user">
+                <div class="user-initial" id="sidebarUserInitial">LS</div>
+                <div>
+                    <p class="user-name" id="sidebarUserName">Creator</p>
+                    <p class="user-plan" id="sidebarUserPlan">Trial</p>
+                </div>
             </div>
-            
-            <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
-                <a href="index.html" class="btn-primary btn-large">Go to Home</a>
-                <button onclick="signOut()" class="btn-secondary btn-large">Sign Out</button>
-            </div>
-        </div>
+            <button class="sidebar-upgrade" data-upgrade-trigger>Upgrade Account</button>
+            <button class="sidebar-signout" onclick="signOut()">Sign Out</button>
+        </aside>
+        <main class="dashboard-main">
+            <header class="dashboard-header">
+                <div>
+                    <p class="eyebrow">Control Center</p>
+                    <h1>Welcome back, <span id="primaryUserName">Creator</span> 👋</h1>
+                    <p class="subtitle">Connect every platform, plan your next show, and monitor upcoming experiences from one canvas.</p>
+                </div>
+                <div class="plan-badge" id="planBadge">Trial</div>
+            </header>
+
+            <section class="upgrade-banner" id="upgradeBanner">
+                <div>
+                    <p class="banner-title">Upgrade required to start streaming</p>
+                    <p class="banner-copy">Streaming tools and destination sync unlock the moment you activate a paid plan.</p>
+                </div>
+                <div class="banner-actions">
+                    <button class="btn-primary" data-upgrade-trigger>Upgrade Plan</button>
+                    <a href="index.html#pricing" class="ghost-link">Compare plans</a>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Destinations</p>
+                        <h2>Connect your platforms</h2>
+                        <p class="subtitle">TikTok, Instagram, Meta, Snapchat, YouTube, Twitch, Kick, and LinkedIn are all ready to sync.</p>
+                    </div>
+                </div>
+                <div class="platform-grid">
+                    <article class="platform-card lock-required" data-platform-card="TikTok">
+                        <div class="platform-icon">TT</div>
+                        <div>
+                            <h3>TikTok</h3>
+                            <p>Reach vertical-first audiences in seconds.</p>
+                        </div>
+                        <button class="platform-connect" data-platform="TikTok">Connect</button>
+                    </article>
+                    <article class="platform-card lock-required" data-platform-card="Instagram">
+                        <div class="platform-icon">IG</div>
+                        <div>
+                            <h3>Instagram</h3>
+                            <p>Stories, reels, and live in one tap.</p>
+                        </div>
+                        <button class="platform-connect" data-platform="Instagram">Connect</button>
+                    </article>
+                    <article class="platform-card lock-required" data-platform-card="Meta">
+                        <div class="platform-icon">FB</div>
+                        <div>
+                            <h3>Meta</h3>
+                            <p>Stream to Facebook pages and groups.</p>
+                        </div>
+                        <button class="platform-connect" data-platform="Meta">Connect</button>
+                    </article>
+                    <article class="platform-card lock-required" data-platform-card="Snapchat">
+                        <div class="platform-icon">SC</div>
+                        <div>
+                            <h3>Snapchat</h3>
+                            <p>Amplify highlights across Spotlight.</p>
+                        </div>
+                        <button class="platform-connect" data-platform="Snapchat">Connect</button>
+                    </article>
+                    <article class="platform-card lock-required" data-platform-card="YouTube">
+                        <div class="platform-icon">YT</div>
+                        <div>
+                            <h3>YouTube</h3>
+                            <p>Broadcast long-form and shorts simultaneously.</p>
+                        </div>
+                        <button class="platform-connect" data-platform="YouTube">Connect</button>
+                    </article>
+                    <article class="platform-card lock-required" data-platform-card="Twitch">
+                        <div class="platform-icon">TW</div>
+                        <div>
+                            <h3>Twitch</h3>
+                            <p>Engage your core community live.</p>
+                        </div>
+                        <button class="platform-connect" data-platform="Twitch">Connect</button>
+                    </article>
+                    <article class="platform-card lock-required" data-platform-card="Kick">
+                        <div class="platform-icon">KK</div>
+                        <div>
+                            <h3>Kick</h3>
+                            <p>Tap into new monetization formats.</p>
+                        </div>
+                        <button class="platform-connect" data-platform="Kick">Connect</button>
+                    </article>
+                    <article class="platform-card lock-required" data-platform-card="LinkedIn">
+                        <div class="platform-icon">IN</div>
+                        <div>
+                            <h3>LinkedIn</h3>
+                            <p>Host executive town halls and launches.</p>
+                        </div>
+                        <button class="platform-connect" data-platform="LinkedIn">Connect</button>
+                    </article>
+                </div>
+            </section>
+
+            <section class="panel stream-lab">
+                <div class="lab-card lock-required" id="liveLab">
+                    <div class="lab-header">
+                        <div>
+                            <p class="eyebrow">Studio</p>
+                            <h3>Go live or record</h3>
+                        </div>
+                        <span class="chip">Browser-based</span>
+                    </div>
+                    <form id="liveForm" class="lab-body">
+                        <label class="field">
+                            <span>Session title</span>
+                            <input type="text" id="liveTitle" placeholder="Morning sync with community" required />
+                        </label>
+                        <div class="mode-picker">
+                            <label>
+                                <input type="radio" name="liveMode" value="live" checked>
+                                <span>Go Live</span>
+                            </label>
+                            <label>
+                                <input type="radio" name="liveMode" value="record">
+                                <span>Record Only</span>
+                            </label>
+                        </div>
+                        <button type="submit" class="btn-primary">Launch studio</button>
+                    </form>
+                </div>
+                <div class="lab-card lock-required" id="scheduleLab">
+                    <div class="lab-header">
+                        <div>
+                            <p class="eyebrow">Scheduler</p>
+                            <h3>Schedule videos & playlists</h3>
+                        </div>
+                        <span class="chip chip-outline">Automation</span>
+                    </div>
+                    <form id="scheduleForm" class="lab-body">
+                        <label class="field">
+                            <span>Stream title</span>
+                            <input type="text" id="scheduleTitle" placeholder="Product teaser" required />
+                        </label>
+                        <label class="field">
+                            <span>Source</span>
+                            <select id="scheduleSource">
+                                <option value="video">Upload a video</option>
+                                <option value="playlist">Use a playlist</option>
+                            </select>
+                        </label>
+                        <label class="field">
+                            <span>Start time</span>
+                            <input type="datetime-local" id="scheduleTime" required />
+                        </label>
+                        <button type="submit" class="btn-secondary">Schedule stream</button>
+                    </form>
+                </div>
+            </section>
+
+            <section class="panel upcoming">
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Pipeline</p>
+                        <h2>Upcoming experiences</h2>
+                        <p class="subtitle">Imported events land here once you start scheduling.</p>
+                    </div>
+                </div>
+                <div class="timeline" id="timeline">
+                    <div class="timeline-empty">
+                        <p>No sessions scheduled yet.</p>
+                        <span>Everything you schedule or record will surface here automatically.</span>
+                    </div>
+                </div>
+            </section>
+        </main>
     </div>
-    
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    
+
     <script src="firebase-config.js"></script>
+    <script src="auth.js"></script>
     <script>
-        // Check if user is logged in
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                document.getElementById('userEmail').textContent = user.email;
-            } else {
-                // Not logged in, redirect to signin
-                window.location.href = 'signin.html';
-            }
+        const dashboardState = {
+            requiresUpgrade: true,
+            userId: null,
+            plan: 'Trial'
+        };
+
+        document.querySelectorAll('[data-upgrade-trigger]').forEach((btn) => {
+            btn.addEventListener('click', () => initiateUpgrade());
         });
-        
+
+        document.querySelectorAll('[data-platform]').forEach((btn) => {
+            btn.addEventListener('click', () => handlePlatformConnect(btn.dataset.platform));
+        });
+
+        document.getElementById('liveForm').addEventListener('submit', (event) => {
+            event.preventDefault();
+            const title = document.getElementById('liveTitle').value;
+            const mode = document.querySelector('input[name="liveMode"]:checked').value;
+            handleStreamAction(`${mode === 'live' ? 'Going live' : 'Recording'}: ${title}`);
+        });
+
+        document.getElementById('scheduleForm').addEventListener('submit', (event) => {
+            event.preventDefault();
+            const title = document.getElementById('scheduleTitle').value;
+            const time = document.getElementById('scheduleTime').value;
+            handleStreamAction(`Scheduled "${title}" for ${time || 'your selected time'}`);
+        });
+
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) {
+                window.location.href = 'signin.html';
+                return;
+            }
+
+            dashboardState.userId = user.uid;
+            const profileSnap = await db.collection('users').doc(user.uid).get();
+            const profile = profileSnap.exists ? profileSnap.data() : {};
+            hydrateUser(user, profile);
+        });
+
+        function hydrateUser(user, profile) {
+            const name = profile.fullName || user.displayName || (user.email ? user.email.split('@')[0] : 'Creator');
+            const plan = (profile.plan || 'Trial');
+            const status = (profile.status || 'trial').toLowerCase();
+            const upgraded = ['active', 'paid', 'upgraded'].includes(status);
+
+            dashboardState.requiresUpgrade = !upgraded;
+            dashboardState.plan = plan;
+
+            document.getElementById('primaryUserName').textContent = name;
+            document.getElementById('sidebarUserName').textContent = name;
+            document.getElementById('sidebarUserInitial').textContent = name.charAt(0).toUpperCase();
+            document.getElementById('sidebarUserPlan').textContent = upgraded ? capitalize(plan) : 'Trial';
+            document.getElementById('planBadge').textContent = upgraded ? capitalize(plan) : 'Trial';
+
+            toggleLockState();
+        }
+
+        function toggleLockState() {
+            document.querySelectorAll('.lock-required').forEach((element) => {
+                element.classList.toggle('locked', dashboardState.requiresUpgrade);
+            });
+        }
+
+        function handlePlatformConnect(platform) {
+            if (dashboardState.requiresUpgrade) {
+                showToast(`Upgrade to connect ${platform}.`);
+                return;
+            }
+            showToast(`${platform} connected successfully!`);
+        }
+
+        function handleStreamAction(message) {
+            if (dashboardState.requiresUpgrade) {
+                showToast('Upgrade to unlock streaming tools.');
+                return;
+            }
+            showToast(message);
+            appendTimelineItem(message);
+        }
+
+        function appendTimelineItem(message) {
+            const timeline = document.getElementById('timeline');
+            const emptyState = document.querySelector('.timeline-empty');
+            if (emptyState) {
+                emptyState.remove();
+            }
+            const card = document.createElement('div');
+            card.className = 'timeline-card';
+            card.innerHTML = `<strong>${message}</strong><span>${new Date().toLocaleString()}</span>`;
+            timeline.prepend(card);
+        }
+
+        function initiateUpgrade() {
+            if (typeof redirectToStripeCheckout === 'function' && dashboardState.userId) {
+                redirectToStripeCheckout(dashboardState.userId, 'pro');
+            } else {
+                window.location.href = 'signup.html?plan=pro';
+            }
+        }
+
+        function capitalize(text = '') {
+            if (!text) return '';
+            return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+        }
+
         function signOut() {
             auth.signOut().then(() => {
                 window.location.href = 'index.html';
             }).catch((error) => {
                 console.error('Error signing out:', error);
+                showToast('Unable to sign out. Please try again.');
             });
+        }
+
+        const toast = document.getElementById('toast');
+        let toastTimeout;
+        function showToast(message) {
+            toast.textContent = message;
+            toast.classList.add('visible');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => toast.classList.remove('visible'), 3000);
         }
     </script>
 </body>
