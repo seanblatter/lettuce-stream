@@ -250,6 +250,20 @@
         const upgradeTriggers = document.querySelectorAll('[data-upgrade-trigger]');
         const THEME_STORAGE_KEY = 'lettuce-dashboard-theme';
         const PROFILE_CACHE_KEY = 'lettuce-user-cache';
+        const OAUTH_REDIRECT_URI = `${window.location.origin}/oauth-callback.html`;
+        const integrationState = {};
+        const oauthProviders = {
+            youtube: {
+                provider: 'YouTube',
+                endpoint: '/api/oauth-youtube',
+                scopes: 'https://www.googleapis.com/auth/youtube'
+            },
+            twitch: {
+                provider: 'Twitch',
+                endpoint: '/api/oauth-twitch',
+                scopes: 'user:read:email channel:manage:broadcast'
+            }
+        };
 
         initTheme();
         initUserMenu();
@@ -288,6 +302,7 @@
             const profile = profileSnap.exists ? profileSnap.data() : {};
             hydrateUser(user, profile);
             persistProfileCache(user.uid, profile);
+            await loadIntegrationStatuses();
         });
 
         function hydrateUser(user, profile = {}) {
@@ -347,11 +362,275 @@
         }
 
         function handlePlatformConnect(platform) {
+            const providerKey = normalizeProvider(platform);
             if (dashboardState.requiresUpgrade) {
                 showToast(`Upgrade to connect ${platform}.`);
                 return;
             }
-            showToast(`${platform} connected successfully!`);
+
+            if (!providerKey || !oauthProviders[providerKey]) {
+                showToast(`${platform} connections are coming soon.`);
+                return;
+            }
+
+            if (!dashboardState.userId) {
+                showToast('Please sign in again to connect this platform.');
+                return;
+            }
+
+            const button = document.querySelector(`[data-platform-card="${platform}"] .platform-connect`);
+            setButtonPending(button, true);
+
+            const isConnected = integrationState[providerKey]?.connected;
+            if (isConnected) {
+                disconnectIntegration(providerKey, platform).finally(() => setButtonPending(button, false));
+                return;
+            }
+
+            launchOAuthFlow(providerKey, platform, button);
+        }
+
+        async function launchOAuthFlow(providerKey, platform, button) {
+            try {
+                const state = `${providerKey}-${generateStateToken()}`;
+                const authorizationUrl = await requestAuthorizationUrl(providerKey, state);
+
+                if (!authorizationUrl) {
+                    throw new Error('Unable to start authorization.');
+                }
+
+                const popup = openOAuthPopup(authorizationUrl);
+                if (!popup) {
+                    showToast('Enable pop-ups to connect this platform.');
+                    return;
+                }
+
+                const result = await waitForOAuthCode(state);
+                if (!result?.code) {
+                    throw new Error(result?.error || 'Authorization code missing.');
+                }
+
+                await exchangeAuthorizationCode(providerKey, result.code);
+                await loadIntegrationStatus(providerKey, true);
+                showToast(`${platform} connected successfully!`);
+            } catch (error) {
+                console.error('Unable to connect platform:', error);
+                showToast(`Unable to connect ${platform}. Please try again.`);
+            } finally {
+                setButtonPending(button, false);
+            }
+        }
+
+        async function disconnectIntegration(providerKey, platform) {
+            const config = oauthProviders[providerKey];
+            const button = document.querySelector(`[data-platform-card="${platform}"] .platform-connect`);
+            try {
+                const idToken = await auth.currentUser.getIdToken();
+                const response = await fetch(config.endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${idToken}`
+                    },
+                    body: JSON.stringify({ action: 'disconnect' })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to disconnect integration');
+                }
+
+                integrationState[providerKey] = { connected: false };
+                updatePlatformButton(providerKey, platform);
+                showToast(`${platform} disconnected.`);
+            } catch (error) {
+                console.error('Disconnect failed:', error);
+                showToast(`Unable to disconnect ${platform}.`);
+            } finally {
+                setButtonPending(button, false);
+            }
+        }
+
+        async function requestAuthorizationUrl(providerKey, state) {
+            const config = oauthProviders[providerKey];
+            try {
+                const response = await fetch(config.endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'start',
+                        redirectUri: OAUTH_REDIRECT_URI,
+                        state
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Authorization URL request failed');
+                }
+
+                const data = await response.json();
+                return data.authorizationUrl;
+            } catch (error) {
+                console.error('Unable to request authorization URL:', error);
+                return '';
+            }
+        }
+
+        async function exchangeAuthorizationCode(providerKey, code) {
+            const config = oauthProviders[providerKey];
+            const idToken = await auth.currentUser.getIdToken();
+            const response = await fetch(config.endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${idToken}`
+                },
+                body: JSON.stringify({
+                    action: 'exchange',
+                    code,
+                    redirectUri: OAUTH_REDIRECT_URI
+                })
+            });
+
+            if (!response.ok) {
+                const details = await response.text();
+                throw new Error(details || 'Token exchange failed');
+            }
+        }
+
+        async function loadIntegrationStatuses() {
+            const supportedProviders = Object.keys(oauthProviders);
+            if (!dashboardState.userId) {
+                return;
+            }
+
+            await Promise.all(supportedProviders.map((providerKey) => loadIntegrationStatus(providerKey)));
+        }
+
+        async function loadIntegrationStatus(providerKey, skipRefreshCheck = false) {
+            const providerLabel = oauthProviders[providerKey]?.provider || providerKey;
+            const doc = await db.collection('users')
+                .doc(dashboardState.userId)
+                .collection('integrations')
+                .doc(providerKey)
+                .get();
+
+            let data = doc.exists ? doc.data() : null;
+            const expiresAt = parseTimestamp(data?.expiresAt);
+
+            if (data && !skipRefreshCheck && expiresAt && expiresAt < new Date()) {
+                await refreshIntegration(providerKey);
+                const refreshedDoc = await db.collection('users')
+                    .doc(dashboardState.userId)
+                    .collection('integrations')
+                    .doc(providerKey)
+                    .get();
+                data = refreshedDoc.exists ? refreshedDoc.data() : null;
+            }
+
+            integrationState[providerKey] = {
+                connected: Boolean(data),
+                expiresAt: parseTimestamp(data?.expiresAt) || null,
+                scope: data?.scope || ''
+            };
+
+            updatePlatformButton(providerKey, providerLabel);
+        }
+
+        async function refreshIntegration(providerKey) {
+            const config = oauthProviders[providerKey];
+            try {
+                const idToken = await auth.currentUser.getIdToken();
+                await fetch(config.endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${idToken}`
+                    },
+                    body: JSON.stringify({ action: 'refresh' })
+                });
+            } catch (error) {
+                console.error('Unable to refresh integration token:', error);
+            }
+        }
+
+        function openOAuthPopup(url) {
+            const width = 480;
+            const height = 720;
+            const left = (window.screen.width / 2) - (width / 2);
+            const top = (window.screen.height / 2) - (height / 2);
+            return window.open(
+                url,
+                'oauthPopup',
+                `toolbar=0,location=0,menubar=0,width=${width},height=${height},left=${left},top=${top}`
+            );
+        }
+
+        function waitForOAuthCode(expectedState) {
+            return new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => {
+                    cleanup();
+                    reject(new Error('Authorization timed out.'));
+                }, 180000);
+
+                function cleanup() {
+                    clearTimeout(timeout);
+                    window.removeEventListener('message', handleMessage);
+                }
+
+                function handleMessage(event) {
+                    if (event.origin !== window.location.origin) {
+                        return;
+                    }
+
+                    const data = event.data || {};
+                    if (data.type !== 'oauthCallback' || data.state !== expectedState) {
+                        return;
+                    }
+
+                    cleanup();
+                    resolve(data);
+                }
+
+                window.addEventListener('message', handleMessage);
+            });
+        }
+
+        function updatePlatformButton(providerKey, platformLabel) {
+            const card = document.querySelector(`[data-platform-card="${platformLabel}"]`);
+            const button = card ? card.querySelector('.platform-connect') : null;
+            const isConnected = Boolean(integrationState[providerKey]?.connected);
+
+            if (card) {
+                card.classList.toggle('connected', isConnected);
+            }
+
+            if (button) {
+                button.dataset.connected = String(isConnected);
+                button.textContent = isConnected ? 'Disconnect' : 'Connect';
+            }
+        }
+
+        function setButtonPending(button, pending) {
+            if (!button) {
+                return;
+            }
+            const defaultLabel = button.dataset.connected === 'true' ? 'Disconnect' : 'Connect';
+            button.disabled = pending;
+            button.textContent = pending ? 'Working…' : defaultLabel;
+        }
+
+        function normalizeProvider(label = '') {
+            const normalized = label.toLowerCase();
+            if (normalized.includes('youtube')) return 'youtube';
+            if (normalized.includes('twitch')) return 'twitch';
+            return '';
+        }
+
+        function generateStateToken() {
+            if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+                return window.crypto.randomUUID();
+            }
+            return Math.random().toString(36).slice(2);
         }
 
         function handleStreamAction(message) {
