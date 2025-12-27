@@ -21,10 +21,10 @@
                 <span>Lettuce Stream</span>
             </div>
             <div class="sidebar-user" id="sidebarUser">
-                <div class="user-initial" id="sidebarUserInitial">LS</div>
+                <div class="user-initial" id="sidebarUserInitial"></div>
                 <button class="user-meta-button" id="userMenuButton" aria-haspopup="true" aria-expanded="false">
-                    <p class="user-name" id="sidebarUserName">Creator</p>
-                    <p class="user-plan" id="sidebarUserPlan">Trial</p>
+                    <p class="user-name" id="sidebarUserName"></p>
+                    <p class="user-plan" id="sidebarUserPlan"></p>
                 </button>
                 <div class="user-dropdown" id="userDropdown" role="menu">
                     <button type="button" data-user-action="billing">Billing</button>
@@ -57,7 +57,7 @@
             <header class="dashboard-header">
                 <div>
                     <p class="eyebrow">Control Center</p>
-                    <h1>Welcome back, <span id="primaryUserName">Creator</span> 👋</h1>
+                    <h1>Welcome back, <span id="primaryUserName"></span> 👋</h1>
                     <p class="subtitle">Connect every platform, plan your next show, and monitor upcoming experiences from one canvas.</p>
                 </div>
                 <div class="header-actions">
@@ -65,20 +65,9 @@
                         <span class="theme-toggle-icon" id="themeToggleIcon">☀️</span>
                         <span class="theme-toggle-label" id="themeToggleLabel">Light mode</span>
                     </button>
-                    <div class="plan-badge" id="planBadge">Trial</div>
+                    <div class="plan-badge" id="planBadge"></div>
                 </div>
             </header>
-
-            <section class="upgrade-banner" id="upgradeBanner">
-                <div>
-                    <p class="banner-title">Upgrade required to start streaming</p>
-                    <p class="banner-copy">Streaming tools and destination sync unlock the moment you activate a paid plan.</p>
-                </div>
-                <div class="banner-actions">
-                    <button class="btn-primary" data-upgrade-trigger>Upgrade Plan</button>
-                    <a href="plans.html" class="ghost-link">Compare plans</a>
-                </div>
-            </section>
 
             <section class="panel">
                 <div class="section-heading">
@@ -300,7 +289,9 @@
         });
 
         function hydrateUser(user, profile) {
-            const name = profile.fullName || user.displayName || (user.email ? user.email.split('@')[0] : 'Creator');
+            const derivedName = profile.fullName || user.displayName || '';
+            const emailHandle = user.email ? user.email.split('@')[0] : '';
+            const name = derivedName || emailHandle;
             const plan = (profile.plan || 'Trial');
             const status = (profile.status || 'trial').toLowerCase();
             const cancelsAt = parseTimestamp(profile.cancelsAt);
@@ -324,9 +315,12 @@
             dashboardState.status = status;
             dashboardState.cancelsAt = cancelsAt;
 
-            document.getElementById('primaryUserName').textContent = name;
-            document.getElementById('sidebarUserName').textContent = name;
-            document.getElementById('sidebarUserInitial').textContent = name.charAt(0).toUpperCase();
+            const initialSource = name || (user.email || '');
+            const initialChar = initialSource.trim().charAt(0).toUpperCase();
+
+            document.getElementById('primaryUserName').textContent = name || user.email || '';
+            document.getElementById('sidebarUserName').textContent = name || user.email || '';
+            document.getElementById('sidebarUserInitial').textContent = initialChar;
             updatePlanBadges({ plan, upgraded, isCancelling, cancelsAt });
 
             toggleLockState();

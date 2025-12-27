@@ -56,15 +56,6 @@
                 </div>
             </div>
 
-            <div class="billing-card">
-                <div>
-                    <p class="eyebrow">Payment method</p>
-                    <h3>Managed by Stripe</h3>
-                    <p class="billing-subtext">We use Stripe to secure your payment details. Full self-serve card management is coming soon.</p>
-                </div>
-                <button type="button" class="btn-secondary" id="updatePayment" disabled>Manage in Stripe</button>
-            </div>
-
             <div class="billing-card billing-actions">
                 <div>
                     <p class="eyebrow">Plan controls</p>
@@ -72,7 +63,6 @@
                     <p class="billing-subtext" id="billingActionCopy">You can cancel at any time. Access stays active through the end of your billing period.</p>
                 </div>
                 <div class="billing-action-buttons">
-                    <button type="button" class="btn-primary" id="resumePlan" hidden>Resume plan</button>
                     <button type="button" class="btn-secondary danger" id="cancelPlan" hidden>Cancel plan</button>
                 </div>
             </div>
@@ -156,11 +146,9 @@
             const emailValueEl = document.getElementById('billingEmailValue');
             const actionCopyEl = document.getElementById('billingActionCopy');
             const cancelButton = document.getElementById('cancelPlan');
-            const resumeButton = document.getElementById('resumePlan');
             const loadingOverlay = document.getElementById('billingLoading');
 
             cancelButton.addEventListener('click', () => scheduleCancellation());
-            resumeButton.addEventListener('click', () => resumeSubscription());
 
             auth.onAuthStateChanged(async (user) => {
                 if (!user) {
@@ -208,11 +196,15 @@
 
                 const cancellationScheduled = status === 'cancelling' && cancelsAt && cancelsAt > now;
                 const hasPaidPlan = ['starter', 'pro', 'enterprise'].includes(planKey);
-                cancelButton.hidden = !hasPaidPlan || cancellationScheduled;
-                resumeButton.hidden = !cancellationScheduled;
+
+                cancelButton.hidden = !hasPaidPlan;
+                if (hasPaidPlan) {
+                    cancelButton.disabled = cancellationScheduled;
+                    cancelButton.textContent = cancellationScheduled ? 'Cancellation scheduled' : 'Cancel plan';
+                }
 
                 if (cancellationScheduled && cancelsAt) {
-                    actionCopyEl.textContent = `Your plan will end on ${formatFullDate(cancelsAt)}. Resume before then to stay live.`;
+                    actionCopyEl.textContent = `Your plan will end on ${formatFullDate(cancelsAt)}. Contact support if you need to keep access.`;
                 } else if (hasPaidPlan) {
                     actionCopyEl.textContent = 'Cancel anytime. Access stays active through the end of your billing period.';
                 } else {
@@ -261,6 +253,9 @@
                 if (!activeUser) {
                     return;
                 }
+                if (cancelButton.disabled) {
+                    return;
+                }
                 const confirmation = window.confirm('Cancel plan? You will keep access until the end of this billing period.');
                 if (!confirmation) {
                     return;
@@ -282,26 +277,6 @@
                 } catch (error) {
                     console.error('Unable to schedule cancellation:', error);
                     showMessage('We could not schedule your cancellation. Please try again.', 'error');
-                } finally {
-                    setLoading(false);
-                }
-            }
-
-            async function resumeSubscription() {
-                if (!activeUser) {
-                    return;
-                }
-                setLoading(true);
-                try {
-                    await db.collection('users').doc(activeUser.uid).set({
-                        status: 'active',
-                        cancelsAt: null
-                    }, { merge: true });
-                    showMessage('Your plan will continue after this billing period.', 'success');
-                    await loadProfile();
-                } catch (error) {
-                    console.error('Unable to resume subscription:', error);
-                    showMessage('We could not resume your plan. Please try again.', 'error');
                 } finally {
                     setLoading(false);
                 }
