@@ -330,7 +330,8 @@
                     cancelsAt: serializeTimestamp(profile.cancelsAt),
                     renewsAt: serializeTimestamp(profile.renewsAt),
                     avatar: profile.avatar || '',
-                    timeZone: profile.timeZone || ''
+                    timeZone: profile.timeZone || '',
+                    subscriptionId: profile.subscriptionId || profile.stripeSubscriptionId || ''
                 };
             }
 

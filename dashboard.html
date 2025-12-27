@@ -484,7 +484,8 @@
                 cancelsAt: serializeTimestamp(profile.cancelsAt),
                 renewsAt: serializeTimestamp(profile.renewsAt),
                 avatar: profile.avatar || '',
-                timeZone: profile.timeZone || ''
+                timeZone: profile.timeZone || '',
+                subscriptionId: profile.subscriptionId || profile.stripeSubscriptionId || ''
             };
         }
 
@@ -566,7 +567,7 @@
                     window.location.href = 'billing.html';
                     break;
                 case 'settings':
-                    showToast('Settings coming soon.');
+                    window.location.href = 'settings.html';
                     break;
                 case 'logout':
                     signOut();
