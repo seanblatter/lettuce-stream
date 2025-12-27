@@ -246,10 +246,10 @@
         const themeToggleLabel = document.getElementById('themeToggleLabel');
         const userMenuButton = document.getElementById('userMenuButton');
         const userDropdown = document.getElementById('userDropdown');
-        const upgradeBanner = document.getElementById('upgradeBanner');
         const sidebarUpgradeButton = document.querySelector('.sidebar-upgrade');
         const upgradeTriggers = document.querySelectorAll('[data-upgrade-trigger]');
         const THEME_STORAGE_KEY = 'lettuce-dashboard-theme';
+        const PROFILE_CACHE_KEY = 'lettuce-user-cache';
 
         initTheme();
         initUserMenu();
@@ -283,18 +283,21 @@
             }
 
             dashboardState.userId = user.uid;
+            applyCachedProfile(user);
             const profileSnap = await db.collection('users').doc(user.uid).get();
             const profile = profileSnap.exists ? profileSnap.data() : {};
             hydrateUser(user, profile);
+            persistProfileCache(user.uid, profile);
         });
 
-        function hydrateUser(user, profile) {
+        function hydrateUser(user, profile = {}) {
             const derivedName = profile.fullName || user.displayName || '';
             const emailHandle = user.email ? user.email.split('@')[0] : '';
             const name = derivedName || emailHandle;
             const plan = (profile.plan || 'Trial');
             const status = (profile.status || 'trial').toLowerCase();
             const cancelsAt = parseTimestamp(profile.cancelsAt);
+            const avatarChoice = profile.avatar || '';
             const now = new Date();
             const statusWhitelist = ['active', 'paid', 'upgraded'];
             let upgraded = statusWhitelist.includes(status);
@@ -320,7 +323,17 @@
 
             document.getElementById('primaryUserName').textContent = name || user.email || '';
             document.getElementById('sidebarUserName').textContent = name || user.email || '';
-            document.getElementById('sidebarUserInitial').textContent = initialChar;
+
+            const avatarElement = document.getElementById('sidebarUserInitial');
+            if (avatarElement) {
+                if (avatarChoice) {
+                    avatarElement.textContent = avatarChoice;
+                    avatarElement.classList.add('avatar-icon');
+                } else {
+                    avatarElement.textContent = initialChar;
+                    avatarElement.classList.remove('avatar-icon');
+                }
+            }
             updatePlanBadges({ plan, upgraded, isCancelling, cancelsAt });
 
             toggleLockState();
@@ -372,9 +385,6 @@
 
         function toggleUpgradeCues() {
             const needsUpgrade = dashboardState.requiresUpgrade;
-            if (upgradeBanner) {
-                upgradeBanner.hidden = !needsUpgrade;
-            }
             if (sidebarUpgradeButton) {
                 sidebarUpgradeButton.style.display = needsUpgrade ? 'flex' : 'none';
                 sidebarUpgradeButton.setAttribute('aria-hidden', String(!needsUpgrade));
@@ -432,6 +442,63 @@
             } catch (error) {
                 console.error('Unable to mark subscription expired:', error);
             }
+        }
+
+        function applyCachedProfile(user) {
+            const cachedProfile = readProfileFromCache(user.uid);
+            if (cachedProfile) {
+                hydrateUser(user, cachedProfile);
+                return true;
+            }
+            return false;
+        }
+
+        function persistProfileCache(userId, profile) {
+            const cache = getProfileCache();
+            cache[userId] = sanitizeProfileForCache(profile);
+            try {
+                localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(cache));
+            } catch (error) {
+                console.warn('Unable to persist profile cache', error);
+            }
+        }
+
+        function readProfileFromCache(userId) {
+            const cache = getProfileCache();
+            return cache[userId] || null;
+        }
+
+        function getProfileCache() {
+            try {
+                return JSON.parse(localStorage.getItem(PROFILE_CACHE_KEY)) || {};
+            } catch (error) {
+                return {};
+            }
+        }
+
+        function sanitizeProfileForCache(profile = {}) {
+            return {
+                fullName: profile.fullName || '',
+                plan: profile.plan || 'Trial',
+                status: profile.status || 'trial',
+                cancelsAt: serializeTimestamp(profile.cancelsAt),
+                renewsAt: serializeTimestamp(profile.renewsAt),
+                avatar: profile.avatar || '',
+                timeZone: profile.timeZone || ''
+            };
+        }
+
+        function serializeTimestamp(value) {
+            if (!value) {
+                return null;
+            }
+            if (typeof value.toDate === 'function') {
+                return value.toDate().toISOString();
+            }
+            if (value instanceof Date) {
+                return value.toISOString();
+            }
+            return value;
         }
 
         function capitalize(text = '') {

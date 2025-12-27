@@ -127,6 +127,7 @@
                     ]
                 }
             };
+            const PROFILE_CACHE_KEY = 'lettuce-user-cache';
 
             if (typeof auth === 'undefined' || typeof db === 'undefined') {
                 showMessage('Billing requires Firebase. Please refresh the page.', 'error');
@@ -157,20 +158,26 @@
                 }
                 activeUser = user;
                 emailValueEl.textContent = user.email || 'Signed in user';
-                await loadProfile();
+                const renderedFromCache = applyCachedProfile(user);
+                await loadProfile({ showSpinner: !renderedFromCache });
             });
 
-            async function loadProfile() {
-                setLoading(true);
+            async function loadProfile({ showSpinner = true } = {}) {
+                if (showSpinner) {
+                    setLoading(true);
+                }
                 try {
                     const profileDoc = await db.collection('users').doc(activeUser.uid).get();
                     activeProfile = profileDoc.exists ? profileDoc.data() : {};
                     renderProfile();
+                    persistProfileCache(activeUser.uid, activeProfile);
                 } catch (error) {
                     console.error('Unable to load billing profile:', error);
                     showMessage('Unable to load billing details. Please refresh the page.', 'error');
                 } finally {
-                    setLoading(false);
+                    if (showSpinner) {
+                        setLoading(false);
+                    }
                 }
             }
 
@@ -280,6 +287,64 @@
                 } finally {
                     setLoading(false);
                 }
+            }
+
+            function applyCachedProfile(user) {
+                const cachedProfile = readProfileFromCache(user.uid);
+                if (cachedProfile) {
+                    activeProfile = cachedProfile;
+                    renderProfile();
+                    return true;
+                }
+                return false;
+            }
+
+            function persistProfileCache(userId, profile) {
+                const cache = getProfileCache();
+                cache[userId] = sanitizeProfileForCache(profile);
+                try {
+                    localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(cache));
+                } catch (error) {
+                    console.warn('Unable to persist billing cache', error);
+                }
+            }
+
+            function readProfileFromCache(userId) {
+                const cache = getProfileCache();
+                return cache[userId] || null;
+            }
+
+            function getProfileCache() {
+                try {
+                    return JSON.parse(localStorage.getItem(PROFILE_CACHE_KEY)) || {};
+                } catch (error) {
+                    return {};
+                }
+            }
+
+            function sanitizeProfileForCache(profile = {}) {
+                return {
+                    fullName: profile.fullName || '',
+                    plan: profile.plan || 'Trial',
+                    status: profile.status || 'trial',
+                    cancelsAt: serializeTimestamp(profile.cancelsAt),
+                    renewsAt: serializeTimestamp(profile.renewsAt),
+                    avatar: profile.avatar || '',
+                    timeZone: profile.timeZone || ''
+                };
+            }
+
+            function serializeTimestamp(value) {
+                if (!value) {
+                    return null;
+                }
+                if (typeof value.toDate === 'function') {
+                    return value.toDate().toISOString();
+                }
+                if (value instanceof Date) {
+                    return value.toISOString();
+                }
+                return value;
             }
 
             function parseTimestamp(value) {

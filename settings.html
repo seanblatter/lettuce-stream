@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Lettuce Stream</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="settings-body">
+    <div class="settings-atmosphere"></div>
+
+    <nav class="settings-nav">
+        <a href="dashboard.html" class="settings-logo">
+            <svg width="34" height="34" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <rect width="32" height="32" rx="8" fill="#F5D547" />
+                <path d="M12 9L22 16L12 23V9Z" fill="#0F172A" />
+            </svg>
+            <span>Lettuce Stream</span>
+        </a>
+        <div class="settings-nav-actions">
+            <a href="billing.html" class="ghost-link">Billing</a>
+            <a href="dashboard.html" class="btn-secondary">Back to dashboard</a>
+        </div>
+    </nav>
+
+    <main class="settings-shell">
+        <section class="settings-panel settings-summary" aria-live="polite">
+            <div class="summary-head">
+                <div class="avatar-preview" id="settingsAvatarPreview" aria-hidden="true">👤</div>
+                <div>
+                    <p class="eyebrow">Workspace</p>
+                    <h1 id="settingsDisplayName">Loading…</h1>
+                    <p class="settings-plan" id="settingsPlanBadge">—</p>
+                    <p class="settings-plan-price" id="settingsPlanPrice">—</p>
+                </div>
+            </div>
+            <div class="settings-summary-grid">
+                <div>
+                    <p class="summary-label">Account email</p>
+                    <p class="summary-value" id="settingsEmailPreview">—</p>
+                </div>
+                <div>
+                    <p class="summary-label">Time zone</p>
+                    <p class="summary-value" id="settingsTimeZonePreview">—</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="settings-panel">
+            <div class="panel-header">
+                <div>
+                    <p class="eyebrow">Profile</p>
+                    <h2>Personalize how you appear</h2>
+                </div>
+            </div>
+            <form id="profileForm" class="settings-form">
+                <label class="field">
+                    <span>Full name</span>
+                    <input type="text" id="fullName" name="fullName" placeholder="Jamie Producer" autocomplete="name" required>
+                </label>
+
+                <label class="field">
+                    <span>Time zone</span>
+                    <select id="timeZone" name="timeZone">
+                        <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                        <option value="America/Denver">Mountain Time (MT)</option>
+                        <option value="America/Chicago">Central Time (CT)</option>
+                        <option value="America/New_York">Eastern Time (ET)</option>
+                        <option value="Europe/London">London (GMT)</option>
+                        <option value="Europe/Berlin">Central Europe (CET)</option>
+                        <option value="Asia/Tokyo">Tokyo (JST)</option>
+                        <option value="Australia/Sydney">Sydney (AEST)</option>
+                        <option value="UTC">UTC</option>
+                    </select>
+                </label>
+
+                <div class="avatar-selector">
+                    <div class="avatar-selector-head">
+                        <p>Profile icon</p>
+                        <span>Choose the emoji that represents you across the dashboard.</span>
+                    </div>
+                    <div class="avatar-options" role="group" aria-label="Profile icon options">
+                        <button type="button" class="avatar-choice" data-avatar-option="🌊" aria-pressed="false">🌊</button>
+                        <button type="button" class="avatar-choice" data-avatar-option="🎧" aria-pressed="false">🎧</button>
+                        <button type="button" class="avatar-choice" data-avatar-option="🚀" aria-pressed="false">🚀</button>
+                        <button type="button" class="avatar-choice" data-avatar-option="🎥" aria-pressed="false">🎥</button>
+                        <button type="button" class="avatar-choice" data-avatar-option="📡" aria-pressed="false">📡</button>
+                        <button type="button" class="avatar-choice" data-avatar-option="🌅" aria-pressed="false">🌅</button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary settings-submit" id="profileSaveButton">
+                    <span>Save profile</span>
+                    <span class="button-spinner" aria-hidden="true"></span>
+                </button>
+            </form>
+        </section>
+
+        <section class="settings-panel">
+            <div class="panel-header">
+                <div>
+                    <p class="eyebrow">Account</p>
+                    <h2>Update email</h2>
+                </div>
+                <p class="settings-subtext">You may be asked to sign in again if it’s been a while since your last authentication.</p>
+            </div>
+            <form id="emailForm" class="settings-form">
+                <label class="field">
+                    <span>Email address</span>
+                    <input type="email" id="emailAddress" name="email" autocomplete="email" required>
+                </label>
+                <button type="submit" class="btn-secondary settings-submit" id="emailSaveButton">
+                    <span>Save email</span>
+                    <span class="button-spinner" aria-hidden="true"></span>
+                </button>
+            </form>
+        </section>
+
+        <section class="settings-panel settings-danger">
+            <div class="panel-header">
+                <div>
+                    <p class="eyebrow">Danger zone</p>
+                    <h2>Delete account</h2>
+                </div>
+                <p class="settings-subtext">Deleting will immediately stop your subscription and remove remaining access. This cannot be undone.</p>
+            </div>
+            <button type="button" class="btn-secondary danger" id="deleteAccount">
+                <span>Delete account</span>
+            </button>
+        </section>
+    </main>
+
+    <div class="settings-message" id="settingsMessage" role="status" hidden></div>
+
+    <div class="settings-loading" id="settingsLoading" role="status" aria-live="polite" hidden>
+        <div class="loading-indicator"></div>
+        <p>Loading your settings…</p>
+    </div>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <script src="firebase-config.js"></script>
+    <script src="auth-helpers.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const PLAN_CATALOG = {
+                trial: { label: 'Trial', priceLabel: 'Free during preview' },
+                starter: { label: 'Starter', priceLabel: '$9 / month' },
+                pro: { label: 'Pro', priceLabel: '$29 / month' },
+                enterprise: { label: 'Enterprise', priceLabel: '$99 / month' }
+            };
+            const PROFILE_CACHE_KEY = 'lettuce-user-cache';
+            const helperFallback = { getErrorMessage: () => 'Unable to complete this action. Please try again.' };
+            const { getErrorMessage } = (window.authHelpers || helperFallback);
+
+            const profileForm = document.getElementById('profileForm');
+            const emailForm = document.getElementById('emailForm');
+            const deleteButton = document.getElementById('deleteAccount');
+            const nameInput = document.getElementById('fullName');
+            const emailInput = document.getElementById('emailAddress');
+            const timeZoneSelect = document.getElementById('timeZone');
+            const avatarButtons = document.querySelectorAll('[data-avatar-option]');
+            const avatarPreview = document.getElementById('settingsAvatarPreview');
+            const displayNameEl = document.getElementById('settingsDisplayName');
+            const planBadgeEl = document.getElementById('settingsPlanBadge');
+            const planPriceEl = document.getElementById('settingsPlanPrice');
+            const emailPreviewEl = document.getElementById('settingsEmailPreview');
+            const timeZonePreviewEl = document.getElementById('settingsTimeZonePreview');
+            const messageEl = document.getElementById('settingsMessage');
+            const loadingOverlay = document.getElementById('settingsLoading');
+
+            let activeUser = null;
+            let activeProfile = {};
+            let selectedAvatar = '';
+
+            avatarButtons.forEach((button) => {
+                button.addEventListener('click', () => {
+                    setAvatarSelection(button.dataset.avatarOption);
+                });
+            });
+
+            nameInput.addEventListener('input', () => {
+                if (!selectedAvatar) {
+                    updateAvatarPreview(nameInput.value, '');
+                }
+            });
+
+            if (typeof auth === 'undefined' || typeof db === 'undefined') {
+                showMessage('Firebase failed to load. Please refresh the page.', 'error');
+                return;
+            }
+
+            auth.onAuthStateChanged(async (user) => {
+                if (!user) {
+                    window.location.href = 'signin.html?next=settings';
+                    return;
+                }
+                activeUser = user;
+                emailPreviewEl.textContent = user.email || '—';
+                emailInput.value = user.email || '';
+                const renderedFromCache = applyCachedProfile(user);
+                await loadProfile({ showSpinner: !renderedFromCache });
+            });
+
+            profileForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                if (!activeUser) {
+                    return;
+                }
+                const fullName = nameInput.value.trim();
+                const timeZoneValue = timeZoneSelect.value;
+                if (!fullName) {
+                    showMessage('Please add your name.', 'error');
+                    return;
+                }
+                setButtonLoading(document.getElementById('profileSaveButton'), true);
+                try {
+                    await db.collection('users').doc(activeUser.uid).set({
+                        fullName,
+                        timeZone: timeZoneValue,
+                        avatar: selectedAvatar || null
+                    }, { merge: true });
+                    if (activeUser.displayName !== fullName) {
+                        await activeUser.updateProfile({ displayName: fullName });
+                    }
+                    activeProfile = { ...activeProfile, fullName, timeZone: timeZoneValue, avatar: selectedAvatar || '' };
+                    refreshSummary();
+                    persistProfileCache(activeUser.uid, activeProfile);
+                    showMessage('Profile updated.', 'success');
+                } catch (error) {
+                    console.error('Unable to update profile:', error);
+                    showMessage('Unable to update profile. Please try again.', 'error');
+                } finally {
+                    setButtonLoading(document.getElementById('profileSaveButton'), false);
+                }
+            });
+
+            emailForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                if (!activeUser) {
+                    return;
+                }
+                const nextEmail = emailInput.value.trim();
+                if (!nextEmail || nextEmail === activeUser.email) {
+                    showMessage('Your email is already up to date.', 'info');
+                    return;
+                }
+                setButtonLoading(document.getElementById('emailSaveButton'), true);
+                try {
+                    await activeUser.updateEmail(nextEmail);
+                    await db.collection('users').doc(activeUser.uid).set({ email: nextEmail }, { merge: true });
+                    emailPreviewEl.textContent = nextEmail;
+                    activeProfile = { ...activeProfile, email: nextEmail };
+                    persistProfileCache(activeUser.uid, activeProfile);
+                    showMessage('Email updated.', 'success');
+                } catch (error) {
+                    console.error('Unable to update email:', error);
+                    const message = error.code === 'auth/requires-recent-login'
+                        ? 'Please sign in again to change your email address.'
+                        : getErrorMessage(error.code);
+                    showMessage(message, 'error');
+                } finally {
+                    setButtonLoading(document.getElementById('emailSaveButton'), false);
+                }
+            });
+
+            deleteButton.addEventListener('click', async () => {
+                if (!activeUser) {
+                    return;
+                }
+                const confirmation = window.confirm('Delete your account? This immediately cancels your plan and removes access.');
+                if (!confirmation) {
+                    return;
+                }
+                setButtonLoading(deleteButton, true);
+                try {
+                    await db.collection('users').doc(activeUser.uid).set({
+                        status: 'expired',
+                        plan: 'Trial',
+                        cancelsAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        renewsAt: null,
+                        deletedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                    removeProfileCacheEntry(activeUser.uid);
+                    await activeUser.delete();
+                    showMessage('Account deleted. Thanks for trying Lettuce Stream.', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1200);
+                } catch (error) {
+                    console.error('Unable to delete account:', error);
+                    const message = error.code === 'auth/requires-recent-login'
+                        ? 'Please sign in again, then delete your account.'
+                        : 'Unable to delete your account. Please try again.';
+                    showMessage(message, 'error');
+                } finally {
+                    setButtonLoading(deleteButton, false);
+                }
+            });
+
+            async function loadProfile({ showSpinner = true } = {}) {
+                if (showSpinner) {
+                    setPageLoading(true);
+                }
+                try {
+                    const profileDoc = await db.collection('users').doc(activeUser.uid).get();
+                    activeProfile = profileDoc.exists ? profileDoc.data() : {};
+                    refreshSummary();
+                    persistProfileCache(activeUser.uid, activeProfile);
+                } catch (error) {
+                    console.error('Unable to load profile:', error);
+                    showMessage('Unable to load your profile. Please refresh the page.', 'error');
+                } finally {
+                    if (showSpinner) {
+                        setPageLoading(false);
+                    }
+                }
+            }
+
+            function refreshSummary() {
+                const planKey = (activeProfile.plan || 'trial').toLowerCase();
+                const planEntry = PLAN_CATALOG[planKey] || PLAN_CATALOG.trial;
+                const fullName = activeProfile.fullName || activeUser.displayName || '';
+                const email = activeProfile.email || activeUser.email || '';
+                displayNameEl.textContent = fullName || email || 'Your workspace';
+                nameInput.value = fullName;
+                emailInput.value = email;
+                planBadgeEl.textContent = `${planEntry.label} plan`;
+                planPriceEl.textContent = planEntry.priceLabel;
+                emailPreviewEl.textContent = email || '—';
+                const timeZoneValue = activeProfile.timeZone || getBrowserTimeZone();
+                syncTimeZoneSelect(timeZoneValue);
+                timeZonePreviewEl.textContent = timeZoneValue;
+                setAvatarSelection(activeProfile.avatar || '');
+                updateAvatarPreview(fullName || email, selectedAvatar);
+            }
+
+            function syncTimeZoneSelect(value) {
+                if (!value) {
+                    return;
+                }
+                const exists = Array.from(timeZoneSelect.options).some((option) => option.value === value);
+                if (!exists) {
+                    const customOption = document.createElement('option');
+                    customOption.value = value;
+                    customOption.textContent = `${value}`;
+                    customOption.dataset.dynamic = 'true';
+                    timeZoneSelect.appendChild(customOption);
+                }
+                timeZoneSelect.value = value;
+            }
+
+            function setAvatarSelection(choice) {
+                selectedAvatar = choice || '';
+                avatarButtons.forEach((button) => {
+                    const isSelected = button.dataset.avatarOption === selectedAvatar && Boolean(selectedAvatar);
+                    button.classList.toggle('selected', isSelected);
+                    button.setAttribute('aria-pressed', String(isSelected));
+                });
+                updateAvatarPreview(nameInput.value || activeUser?.email || '', selectedAvatar);
+            }
+
+            function updateAvatarPreview(sourceText, icon) {
+                if (!avatarPreview) {
+                    return;
+                }
+                if (icon) {
+                    avatarPreview.textContent = icon;
+                    avatarPreview.classList.add('avatar-icon');
+                } else {
+                    const fallback = (sourceText || '').trim().charAt(0).toUpperCase() || '👤';
+                    avatarPreview.textContent = fallback;
+                    avatarPreview.classList.remove('avatar-icon');
+                }
+            }
+
+            function showMessage(message, tone = 'info') {
+                if (!messageEl) {
+                    return;
+                }
+                if (!message) {
+                    messageEl.hidden = true;
+                    messageEl.textContent = '';
+                    messageEl.dataset.tone = '';
+                    return;
+                }
+                messageEl.hidden = false;
+                messageEl.textContent = message;
+                messageEl.dataset.tone = tone;
+            }
+
+            function setButtonLoading(button, isLoading) {
+                if (!button) {
+                    return;
+                }
+                button.disabled = isLoading;
+                const spinner = button.querySelector('.button-spinner');
+                if (spinner) {
+                    spinner.style.opacity = isLoading ? 1 : 0;
+                    spinner.style.visibility = isLoading ? 'visible' : 'hidden';
+                }
+            }
+
+            function setPageLoading(isLoading) {
+                if (!loadingOverlay) {
+                    return;
+                }
+                loadingOverlay.hidden = !isLoading;
+            }
+
+            function applyCachedProfile(user) {
+                const cachedProfile = readProfileFromCache(user.uid);
+                if (cachedProfile) {
+                    activeProfile = cachedProfile;
+                    refreshSummary();
+                    return true;
+                }
+                return false;
+            }
+
+            function persistProfileCache(userId, profile) {
+                const cache = getProfileCache();
+                cache[userId] = sanitizeProfileForCache(profile);
+                try {
+                    localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(cache));
+                } catch (error) {
+                    console.warn('Unable to persist settings cache', error);
+                }
+            }
+
+            function removeProfileCacheEntry(userId) {
+                const cache = getProfileCache();
+                if (cache[userId]) {
+                    delete cache[userId];
+                    try {
+                        localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(cache));
+                    } catch (error) {
+                        console.warn('Unable to clear cached profile', error);
+                    }
+                }
+            }
+
+            function readProfileFromCache(userId) {
+                const cache = getProfileCache();
+                return cache[userId] || null;
+            }
+
+            function getProfileCache() {
+                try {
+                    return JSON.parse(localStorage.getItem(PROFILE_CACHE_KEY)) || {};
+                } catch (error) {
+                    return {};
+                }
+            }
+
+            function sanitizeProfileForCache(profile = {}) {
+                return {
+                    fullName: profile.fullName || '',
+                    plan: profile.plan || 'Trial',
+                    status: profile.status || 'trial',
+                    cancelsAt: serializeTimestamp(profile.cancelsAt),
+                    renewsAt: serializeTimestamp(profile.renewsAt),
+                    avatar: profile.avatar || '',
+                    timeZone: profile.timeZone || '',
+                    email: profile.email || ''
+                };
+            }
+
+            function serializeTimestamp(value) {
+                if (!value) {
+                    return null;
+                }
+                if (typeof value.toDate === 'function') {
+                    return value.toDate().toISOString();
+                }
+                if (value instanceof Date) {
+                    return value.toISOString();
+                }
+                return value;
+            }
+
+            function getBrowserTimeZone() {
+                try {
+                    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+                } catch (error) {
+                    return 'UTC';
+                }
+            }
+        });
+    </script>
+</body>
+</html>
