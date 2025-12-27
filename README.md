@@ -92,6 +92,17 @@ const stripe = Stripe('pk_test_YOUR_PUBLISHABLE_KEY');
 
 4. Set up a backend server to handle Stripe checkout sessions (required for production)
 
+### OAuth Integrations (YouTube & Twitch)
+
+1. Create OAuth credentials for each platform:
+   - **YouTube**: OAuth client (type Web) with the redirect URI `https://YOUR_DOMAIN/oauth-callback.html`
+   - **Twitch**: Register an application with the same redirect URI
+2. Provide the credentials to the serverless functions via environment variables:
+   - `FIREBASE_SERVICE_ACCOUNT` – JSON string for a Firebase service account with Firestore access
+   - `YOUTUBE_CLIENT_ID` and `YOUTUBE_CLIENT_SECRET`
+   - `TWITCH_CLIENT_ID` and `TWITCH_CLIENT_SECRET`
+3. Deploy `oauth-callback.html` alongside the app so the popup flow can return the authorization code.
+
 ### Local Development
 
 1. Clone the repository:

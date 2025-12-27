@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OAuth Callback</title>
+</head>
+<body>
+    <main style="font-family: Arial, sans-serif; padding: 24px; text-align: center;">
+        <h1>Completing sign-in…</h1>
+        <p id="status">Please wait while we finish connecting your account.</p>
+    </main>
+    <script>
+        (function () {
+            const params = new URLSearchParams(window.location.search);
+            const code = params.get('code');
+            const state = params.get('state');
+            const error = params.get('error');
+
+            const message = {
+                type: 'oauthCallback',
+                code,
+                state,
+                error: error || null
+            };
+
+            if (window.opener && typeof window.opener.postMessage === 'function') {
+                window.opener.postMessage(message, window.location.origin);
+            }
+
+            const statusElement = document.getElementById('status');
+            if (error) {
+                statusElement.textContent = 'The connection was cancelled or denied. You can close this window.';
+            } else if (code) {
+                statusElement.textContent = 'Authorization complete. You can return to the dashboard.';
+            } else {
+                statusElement.textContent = 'No authorization code detected. Please return to the dashboard.';
+            }
+
+            setTimeout(() => window.close(), 1500);
+        })();
+    </script>
+</body>
+</html>
