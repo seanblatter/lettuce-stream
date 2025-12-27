@@ -152,7 +152,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             const PLAN_CATALOG = {
                 trial: { label: 'Trial', priceLabel: 'Free during preview' },
-                starter: { label: 'Starter', priceLabel: '$9 / month' },
+                starter: { label: 'Starter', priceLabel: '$19 / month' },
                 pro: { label: 'Pro', priceLabel: '$29 / month' },
                 enterprise: { label: 'Enterprise', priceLabel: '$99 / month' }
             };
@@ -330,13 +330,17 @@
             function refreshSummary() {
                 const planKey = (activeProfile.plan || 'trial').toLowerCase();
                 const planEntry = PLAN_CATALOG[planKey] || PLAN_CATALOG.trial;
+                const status = (activeProfile.status || 'trial').toLowerCase();
+                const hasPaidPlan = isPaidStatus(status);
+                const planLabelText = hasPaidPlan ? `${planEntry.label} plan` : 'Upgrade now';
+                const planPriceText = hasPaidPlan ? planEntry.priceLabel : 'Plans start at $19 / month';
                 const fullName = activeProfile.fullName || activeUser.displayName || '';
                 const email = activeProfile.email || activeUser.email || '';
                 displayNameEl.textContent = fullName || email || 'Your workspace';
                 nameInput.value = fullName;
                 emailInput.value = email;
-                planBadgeEl.textContent = `${planEntry.label} plan`;
-                planPriceEl.textContent = planEntry.priceLabel;
+                planBadgeEl.textContent = planLabelText;
+                planPriceEl.textContent = planPriceText;
                 emailPreviewEl.textContent = email || '—';
                 const timeZoneValue = activeProfile.timeZone || getBrowserTimeZone();
                 syncTimeZoneSelect(timeZoneValue);
@@ -525,6 +529,11 @@
                 } catch (error) {
                     return 'UTC';
                 }
+            }
+
+            function isPaidStatus(status = '') {
+                const normalized = status.toLowerCase();
+                return ['active', 'paid', 'upgraded', 'cancelling'].includes(normalized);
             }
         });
     </script>

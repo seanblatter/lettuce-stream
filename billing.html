@@ -98,7 +98,7 @@
                 },
                 starter: {
                     label: 'Starter',
-                    priceLabel: '$9 / month',
+                    priceLabel: '$19 / month',
                     description: 'For emerging creators learning multi-streaming fundamentals.',
                     features: [
                         'Stream to 2 destinations',
@@ -189,9 +189,19 @@
                 const renewsAt = parseTimestamp(activeProfile.renewsAt);
                 const now = new Date();
 
-                planNameEl.textContent = `${planEntry.label} plan`;
-                planDescriptionEl.textContent = planEntry.description;
-                planPriceEl.textContent = planEntry.priceLabel;
+                const paidStatuses = ['active', 'paid', 'upgraded'];
+                const cancellationScheduled = status === 'cancelling' && cancelsAt && cancelsAt > now;
+                const hasPaidPlan = paidStatuses.includes(status) || cancellationScheduled;
+
+                const planLabelText = hasPaidPlan ? `${planEntry.label} plan` : 'Upgrade now';
+                const planPriceText = hasPaidPlan ? planEntry.priceLabel : 'Plans start at $19 / month';
+                const planDescriptionText = hasPaidPlan
+                    ? planEntry.description
+                    : 'Start a plan to unlock every destination, analytics, and automation feature.';
+
+                planNameEl.textContent = planLabelText;
+                planDescriptionEl.textContent = planDescriptionText;
+                planPriceEl.textContent = planPriceText;
                 renderFeatureList(planEntry.features);
 
                 const statusDisplay = formatStatus(status, cancelsAt, now);
@@ -200,9 +210,6 @@
 
                 const renewalDate = determineRenewalDate({ status, cancelsAt, renewsAt, now });
                 renewalValueEl.textContent = renewalDate ? formatFullDate(renewalDate) : 'Not scheduled';
-
-                const cancellationScheduled = status === 'cancelling' && cancelsAt && cancelsAt > now;
-                const hasPaidPlan = ['starter', 'pro', 'enterprise'].includes(planKey);
 
                 cancelButton.hidden = !hasPaidPlan;
                 if (hasPaidPlan) {
