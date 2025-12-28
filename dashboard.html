@@ -264,9 +264,13 @@
 
         document.getElementById('liveForm').addEventListener('submit', (event) => {
             event.preventDefault();
-            const title = document.getElementById('liveTitle').value;
+            const title = document.getElementById('liveTitle').value.trim();
             const mode = document.querySelector('input[name="liveMode"]:checked').value;
-            handleStreamAction(`${mode === 'live' ? 'Going live' : 'Recording'}: ${title}`);
+            if (dashboardState.requiresUpgrade) {
+                showToast('Upgrade to unlock streaming tools.');
+                return;
+            }
+            launchStudioSession({ title, mode });
         });
 
         document.getElementById('scheduleForm').addEventListener('submit', (event) => {
@@ -361,6 +365,18 @@
             }
             showToast(message);
             appendTimelineItem(message);
+        }
+
+        function launchStudioSession({ title = '', mode = 'live' } = {}) {
+            const safeTitle = title || 'Untitled session';
+            const params = new URLSearchParams({
+                title: safeTitle,
+                mode
+            });
+            window.open(`studio.html?${params.toString()}`, '_blank', 'noopener');
+            const timelineMessage = `${mode === 'record' ? 'Recording' : 'Going live'}: ${safeTitle}`;
+            showToast('Studio launching in a new tab.');
+            appendTimelineItem(timelineMessage);
         }
 
         function appendTimelineItem(message) {

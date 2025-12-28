@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Studio Preview - Lettuce Stream</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            color-scheme: dark;
+            --studio-bg: #050e1c;
+            --studio-panel: #0f1c33;
+            --studio-accent: #f5d547;
+            --studio-accent-soft: rgba(245, 213, 71, 0.2);
+            --studio-border: rgba(255, 255, 255, 0.08);
+            --studio-text: #f7fafc;
+            --studio-muted: rgba(247, 250, 252, 0.65);
+            --studio-danger: #ff5c5c;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            font-family: 'Inter', 'Space Grotesk', sans-serif;
+            background: radial-gradient(circle at top, rgba(15, 100, 255, 0.18), transparent 45%),
+                        radial-gradient(circle at 25% 25%, rgba(245, 213, 71, 0.08), transparent 55%),
+                        var(--studio-bg);
+            color: var(--studio-text);
+            min-height: 100vh;
+        }
+        .studio-shell {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            padding: 32px;
+            gap: 24px;
+        }
+        .studio-topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(15, 28, 51, 0.9);
+            border: 1px solid var(--studio-border);
+            border-radius: 20px;
+            padding: 20px 28px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(20px);
+        }
+        .studio-topbar h1 {
+            margin: 0;
+            font-size: 1.6rem;
+            letter-spacing: -0.02em;
+        }
+        .studio-topbar p {
+            margin: 4px 0 0;
+            color: var(--studio-muted);
+            font-size: 0.95rem;
+        }
+        .topbar-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .studio-btn {
+            border: 1px solid transparent;
+            border-radius: 999px;
+            padding: 10px 18px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--studio-text);
+            transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
+        }
+        .studio-btn:hover {
+            transform: translateY(-1px);
+        }
+        .studio-btn.primary {
+            background: var(--studio-accent);
+            color: #0f172a;
+        }
+        .studio-btn.secondary {
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        .studio-btn.ghost {
+            background: transparent;
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+        .studio-btn.toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-color: rgba(255, 255, 255, 0.2);
+            padding-left: 14px;
+        }
+        .record-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--studio-muted);
+            display: inline-block;
+        }
+        .studio-btn.toggle[data-recording="true"] {
+            background: rgba(255, 92, 92, 0.15);
+            border-color: rgba(255, 92, 92, 0.35);
+            color: #ffbdbd;
+        }
+        .studio-btn.toggle[data-recording="true"] .record-dot {
+            background: var(--studio-danger);
+            box-shadow: 0 0 8px var(--studio-danger);
+        }
+        .studio-grid {
+            display: grid;
+            grid-template-columns: 220px minmax(0, 1fr) 320px;
+            gap: 24px;
+            flex: 1;
+        }
+        .studio-panel {
+            background: rgba(15, 28, 51, 0.85);
+            border: 1px solid var(--studio-border);
+            border-radius: 24px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+        }
+        .studio-left h2,
+        .studio-right h2 {
+            margin: 0;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--studio-muted);
+        }
+        .destination-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            padding: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            color: var(--studio-text);
+        }
+        .destination-card span {
+            color: var(--studio-muted);
+            font-size: 0.85rem;
+        }
+        .studio-stage {
+            position: relative;
+            background: #020712;
+            border-radius: 32px;
+            padding: 24px;
+            border: 1px solid var(--studio-border);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .stage-video {
+            position: relative;
+            border-radius: 24px;
+            overflow: hidden;
+            background: #000;
+            min-height: 420px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .stage-video video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            background: #000;
+        }
+        .stage-watermark {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(5, 14, 28, 0.7);
+            padding: 10px 16px;
+            border-radius: 999px;
+            font-weight: 700;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            cursor: pointer;
+        }
+        .stage-watermark:hover {
+            background: rgba(245, 213, 71, 0.2);
+        }
+        .video-fallback {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(15, 28, 51, 0.9), rgba(15, 28, 51, 0.6));
+            color: var(--studio-muted);
+            font-size: 1.1rem;
+            text-align: center;
+            padding: 0 40px;
+        }
+        .stage-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 8px;
+        }
+        .status-pill {
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.07);
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-pill::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4ade80;
+        }
+        .studio-right .tool-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .tool-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            padding: 12px 14px;
+            background: rgba(255, 255, 255, 0.02);
+            cursor: pointer;
+            text-align: left;
+        }
+        .tool-row:hover {
+            border-color: var(--studio-accent-soft);
+        }
+        .tool-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 12px;
+            background: rgba(245, 213, 71, 0.15);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+        .scene-card {
+            background: linear-gradient(135deg, rgba(245, 213, 71, 0.08), rgba(80, 160, 255, 0.12));
+            border-radius: 18px;
+            padding: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .scene-card h3 {
+            margin: 0 0 6px;
+        }
+        .scene-card p {
+            margin: 0;
+            color: var(--studio-muted);
+            font-size: 0.9rem;
+        }
+        .add-scene-btn {
+            width: 100%;
+            border-radius: 16px;
+            padding: 12px;
+            font-weight: 600;
+            border: 1px dashed rgba(255, 255, 255, 0.2);
+            background: transparent;
+            color: var(--studio-text);
+            cursor: pointer;
+        }
+        .studio-toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: rgba(5, 14, 28, 0.9);
+            padding: 14px 18px;
+            border-radius: 14px;
+            border: 1px solid var(--studio-border);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            pointer-events: none;
+        }
+        .studio-toast.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        @media (max-width: 1100px) {
+            .studio-shell {
+                padding: 20px;
+            }
+            .studio-grid {
+                grid-template-columns: 1fr;
+            }
+            .studio-left,
+            .studio-right {
+                flex-direction: row;
+                overflow-x: auto;
+            }
+            .studio-topbar {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 16px;
+            }
+        }
+    </style>
+</head>
+<body class="studio-body">
+    <div class="studio-shell">
+        <header class="studio-topbar">
+            <div>
+                <h1 id="studioStreamName">Untitled Session</h1>
+                <p id="studioModeLabel">Live preview</p>
+            </div>
+            <div class="topbar-actions">
+                <button class="studio-btn ghost" id="studioUpgradeButton">Go Pro</button>
+                <button class="studio-btn toggle" id="recordToggle" aria-pressed="false">
+                    <span class="record-dot" aria-hidden="true"></span>
+                    <span id="recordToggleLabel">Record standby</span>
+                </button>
+                <button class="studio-btn secondary" id="topAddChannel">+ Channels</button>
+                <button class="studio-btn secondary" id="scheduleButton">Schedule</button>
+                <button class="studio-btn primary" id="goLiveButton">Go live</button>
+            </div>
+        </header>
+
+        <div class="studio-grid">
+            <aside class="studio-panel studio-left">
+                <div>
+                    <h2>Destinations</h2>
+                    <p class="studio-muted">Route your feed anywhere.</p>
+                </div>
+                <button class="add-scene-btn" id="sidebarAddChannel">Add destination</button>
+                <div class="destination-card">
+                    <div>YouTube <span>Offline</span></div>
+                    <span>1080p</span>
+                </div>
+                <div class="destination-card">
+                    <div>Twitch <span>Offline</span></div>
+                    <span>1080p</span>
+                </div>
+                <div class="destination-card">
+                    <div>Kick <span>Offline</span></div>
+                    <span>720p</span>
+                </div>
+            </aside>
+
+            <section class="studio-stage">
+                <div class="stage-video">
+                    <video id="studioFeed" autoplay playsinline muted></video>
+                    <button type="button" class="stage-watermark" id="studioWatermark">Lettuce Stream</button>
+                    <div class="video-fallback" id="cameraFallback">Allow camera access to preview your studio feed.</div>
+                </div>
+                <div class="stage-footer">
+                    <div class="status-pill" id="previewStatus">Preview mode active</div>
+                    <div class="studio-levels">
+                        <small style="color: var(--studio-muted);">Audio mix · −12 dB</small>
+                    </div>
+                </div>
+            </section>
+
+            <aside class="studio-panel studio-right">
+                <button class="add-scene-btn" id="addSceneButton">+ Add scene</button>
+                <div class="scene-card">
+                    <h3>Starter welcome deck</h3>
+                    <p>Drop your opening slide, sponsor card, or countdown here.</p>
+                </div>
+                <div class="tool-stack">
+                    <button class="tool-row" data-tool="Graphics">
+                        <span class="tool-icon" aria-hidden="true">🎨</span>
+                        <div>
+                            <strong>Graphics</strong>
+                            <p style="margin:4px 0 0;color:var(--studio-muted);font-size:0.85rem;">Lower thirds, logo bugs, overlays.</p>
+                        </div>
+                    </button>
+                    <button class="tool-row" data-tool="Captions">
+                        <span class="tool-icon" aria-hidden="true">💬</span>
+                        <div>
+                            <strong>Captions</strong>
+                            <p style="margin:4px 0 0;color:var(--studio-muted);font-size:0.85rem;">Auto-transcribe and pin quotes.</p>
+                        </div>
+                    </button>
+                    <button class="tool-row" data-tool="QR Codes">
+                        <span class="tool-icon" aria-hidden="true">🌀</span>
+                        <div>
+                            <strong>QR codes</strong>
+                            <p style="margin:4px 0 0;color:var(--studio-muted);font-size:0.85rem;">Share links on-screen in seconds.</p>
+                        </div>
+                    </button>
+                    <button class="tool-row" data-tool="Notes">
+                        <span class="tool-icon" aria-hidden="true">📝</span>
+                        <div>
+                            <strong>Notes</strong>
+                            <p style="margin:4px 0 0;color:var(--studio-muted);font-size:0.85rem;">Keep your run of show handy.</p>
+                        </div>
+                    </button>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <div class="studio-toast" id="studioToast" role="status" aria-live="polite"></div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script>
+        (function () {
+            const PAID_STATUS_KEYS = ['active', 'paid', 'upgraded', 'cancelling'];
+            const params = new URLSearchParams(window.location.search);
+            const streamNameEl = document.getElementById('studioStreamName');
+            const streamModeEl = document.getElementById('studioModeLabel');
+            const recordToggle = document.getElementById('recordToggle');
+            const recordToggleLabel = document.getElementById('recordToggleLabel');
+            const goLiveButton = document.getElementById('goLiveButton');
+            const toastEl = document.getElementById('studioToast');
+            const watermarkButton = document.getElementById('studioWatermark');
+            const fallbackEl = document.getElementById('cameraFallback');
+            const videoEl = document.getElementById('studioFeed');
+            let cameraStream = null;
+            let isLive = false;
+            let isRecording = false;
+
+            const sessionTitle = params.get('title') ? decodeURIComponent(params.get('title')) : 'Untitled session';
+            const modeParam = params.get('mode') === 'record' ? 'Record session' : 'Live preview';
+            streamNameEl.textContent = sessionTitle;
+            streamModeEl.textContent = modeParam;
+
+            function showToast(message) {
+                if (!toastEl) return;
+                toastEl.textContent = message;
+                toastEl.classList.add('visible');
+                clearTimeout(showToast.timeoutId);
+                showToast.timeoutId = setTimeout(() => toastEl.classList.remove('visible'), 2600);
+            }
+
+            function guardPaidUser() {
+                if (typeof auth === 'undefined' || typeof db === 'undefined') {
+                    showToast('Studio requires Firebase. Refresh to try again.');
+                    return;
+                }
+                auth.onAuthStateChanged(async (user) => {
+                    if (!user) {
+                        window.location.href = 'signin.html?next=studio';
+                        return;
+                    }
+                    try {
+                        const doc = await db.collection('users').doc(user.uid).get();
+                        const status = (doc.exists ? doc.data().status : 'trial') || 'trial';
+                        if (!PAID_STATUS_KEYS.includes(String(status).toLowerCase())) {
+                            window.location.href = 'billing.html';
+                            return;
+                        }
+                        initCamera();
+                    } catch (error) {
+                        console.error('Unable to hydrate studio:', error);
+                        showToast('Unable to load your workspace. Try refreshing.');
+                    }
+                });
+            }
+
+            async function initCamera() {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    fallbackEl.textContent = 'Your browser does not support live preview. Try Chrome or Edge.';
+                    return;
+                }
+                try {
+                    cameraStream = await navigator.mediaDevices.getUserMedia({ video: { width: 1920, height: 1080 }, audio: true });
+                    videoEl.srcObject = cameraStream;
+                    fallbackEl.style.display = 'none';
+                    showToast('Camera preview ready.');
+                } catch (error) {
+                    console.warn('Camera access denied:', error);
+                    fallbackEl.textContent = 'We could not access your camera. Check permissions and reload.';
+                }
+            }
+
+            function toggleRecording() {
+                isRecording = !isRecording;
+                recordToggle.dataset.recording = String(isRecording);
+                recordToggle.setAttribute('aria-pressed', String(isRecording));
+                recordToggleLabel.textContent = isRecording ? 'Recording…' : 'Record standby';
+                showToast(isRecording ? 'Recording buffer armed.' : 'Recording paused.');
+            }
+
+            function toggleGoLive() {
+                isLive = !isLive;
+                goLiveButton.textContent = isLive ? 'End stream' : 'Go live';
+                goLiveButton.classList.toggle('secondary', isLive);
+                goLiveButton.classList.toggle('primary', !isLive);
+                showToast(isLive ? 'You are live across all destinations.' : 'Stream ended.');
+            }
+
+            function openUpgrade(message) {
+                showToast(message || 'Upgrade to customize your studio.');
+                window.open('checkout.html?plan=pro', '_blank');
+            }
+
+            function wireButtons() {
+                recordToggle.addEventListener('click', toggleRecording);
+                goLiveButton.addEventListener('click', toggleGoLive);
+                document.getElementById('studioUpgradeButton').addEventListener('click', () => openUpgrade('Go Pro to unlock 4K, graphics, and multi-guest slots.'));
+                watermarkButton.addEventListener('click', () => openUpgrade('Upgrade to rename or remove the Lettuce Stream watermark.'));
+                document.getElementById('topAddChannel').addEventListener('click', () => {
+                    window.open('dashboard.html#channels', '_blank');
+                    showToast('Channel picker opened in a new tab.');
+                });
+                document.getElementById('sidebarAddChannel').addEventListener('click', () => {
+                    window.open('dashboard.html#channels', '_blank');
+                    showToast('Channel picker opened in a new tab.');
+                });
+                document.getElementById('scheduleButton').addEventListener('click', () => {
+                    window.open('dashboard.html#scheduleLab', '_blank');
+                    showToast('Scheduler opened.');
+                });
+                document.getElementById('addSceneButton').addEventListener('click', () => showToast('Scene library coming soon.')); 
+                document.querySelectorAll('.tool-row').forEach((row) => {
+                    row.addEventListener('click', () => {
+                        const label = row.dataset.tool || 'Tool';
+                        showToast(`${label} controls are part of the Pro toolkit.`);
+                    });
+                });
+            }
+
+            window.addEventListener('beforeunload', () => {
+                if (cameraStream) {
+                    cameraStream.getTracks().forEach((track) => track.stop());
+                }
+            });
+
+            wireButtons();
+            guardPaidUser();
+        })();
+    </script>
+</body>
+</html>
