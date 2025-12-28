@@ -399,16 +399,15 @@
         function updatePlanBadges({ plan, upgraded, isCancelling, cancelsAt }) {
             const sidebarPlan = document.getElementById('sidebarUserPlan');
             const planBadge = document.getElementById('planBadge');
-            const hasPaidPlan = Boolean(upgraded);
-            const baseLabel = hasPaidPlan ? capitalize(plan) : 'Upgrade now';
-            const cancelLabel = cancelsAt ? `Ends ${formatDate(cancelsAt)}` : baseLabel;
+            const planLabel = upgraded ? capitalize(plan) : 'Trial';
+            const cancelLabel = cancelsAt ? `Ends ${formatDate(cancelsAt)}` : 'Trial ends soon';
 
             if (sidebarPlan) {
-                sidebarPlan.textContent = isCancelling && cancelsAt ? 'Cancels soon' : baseLabel;
+                sidebarPlan.textContent = isCancelling && cancelsAt ? 'Cancels soon' : planLabel;
             }
 
             if (planBadge) {
-                planBadge.textContent = isCancelling && cancelsAt ? cancelLabel : baseLabel;
+                planBadge.textContent = isCancelling && cancelsAt ? cancelLabel : planLabel;
             }
         }
 
