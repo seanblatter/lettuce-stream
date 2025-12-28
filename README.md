@@ -204,6 +204,10 @@ app.post('/api/create-checkout-session', async (req, res) => {
 app.listen(3000);
 ```
 
+## OAuth + Multiplatform Broadcasting 🚀
+
+This repo now ships an Express server (`api/server.js`) that brokers OAuth for YouTube (offline tokens) and Twitch (user + client credentials), encrypts tokens with AES-GCM, and stores connection metadata in Firestore. A lightweight `BroadcastOrchestrator` (`api/broadcast-worker.js`) turns saved connections into ingest targets (YouTube Live insert/bind/start and Twitch RTMP + stream key) while allowing manual RTMP fallbacks. Update your privacy policy/ToS to reflect multi-platform publishing and configure environment variables (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET`, `TOKEN_ENCRYPTION_KEY`, etc.) before deploying.
+
 ## Customization 🎨
 
 ### Colors
