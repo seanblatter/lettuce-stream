@@ -373,10 +373,7 @@
                 title: safeTitle,
                 mode
             });
-            window.open(`studio.html?${params.toString()}`, '_blank', 'noopener');
-            const timelineMessage = `${mode === 'record' ? 'Recording' : 'Going live'}: ${safeTitle}`;
-            showToast('Studio launching in a new tab.');
-            appendTimelineItem(timelineMessage);
+            window.location.href = `studio.html?${params.toString()}`;
         }
 
         function appendTimelineItem(message) {
