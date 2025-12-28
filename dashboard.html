@@ -287,6 +287,10 @@
             hasSyncedExpiration: false
         };
 
+        const connectionState = {
+            destinations: {}
+        };
+
         const bodyElement = document.body;
         const themeToggle = document.getElementById('themeToggle');
         const themeToggleIcon = document.getElementById('themeToggleIcon');
@@ -299,6 +303,7 @@
         const upgradeTriggers = document.querySelectorAll('[data-upgrade-trigger]');
         const THEME_STORAGE_KEY = 'lettuce-dashboard-theme';
         const PROFILE_CACHE_KEY = 'lettuce-user-cache';
+        const OAUTH_STATE_CACHE_KEY = 'lettuce-oauth-state';
 
         initTheme();
         initUserMenu();
@@ -342,7 +347,46 @@
             const profile = profileSnap.exists ? profileSnap.data() : {};
             hydrateUser(user, profile);
             persistProfileCache(user.uid, profile);
+            await fetchConnectionState();
+            await handleOAuthReturn();
         });
+
+        async function fetchConnectionState() {
+            if (!dashboardState.userId) return;
+            try {
+                const response = await fetch(`/api/oauth/status?userId=${dashboardState.userId}`);
+                const payload = await response.json();
+                connectionState.destinations = payload.destinations || {};
+                renderDestinationBadges();
+            } catch (error) {
+                console.error('Unable to load connections', error);
+            }
+        }
+
+        function renderDestinationBadges() {
+            ['YouTube', 'Twitch'].forEach((platform) => {
+                const card = document.querySelector(`[data-platform-card="${platform}"]`);
+                const button = card?.querySelector('[data-platform]');
+                const key = platform.toLowerCase();
+                const connection = connectionState.destinations[key];
+                if (!card || !button) return;
+
+                const existingMeta = card.querySelector('.connection-meta');
+                if (existingMeta) existingMeta.remove();
+
+                if (connection?.channel) {
+                    const avatar = connection.channel.avatar ? `<img src="${connection.channel.avatar}" alt="${platform} avatar" class="platform-avatar" />` : '';
+                    card.classList.add('connected');
+                    card.querySelector('p')?.insertAdjacentHTML('afterend', `<div class="connection-meta">${avatar}<span>${connection.channel.title || 'Connected channel'}</span></div>`);
+                    button.textContent = 'Disconnect';
+                } else {
+                    card.classList.remove('connected');
+                    const meta = card.querySelector('.connection-meta');
+                    if (meta) meta.remove();
+                    button.textContent = 'Connect';
+                }
+            });
+        }
 
         function hydrateUser(user, profile = {}) {
             const derivedName = profile.fullName || user.displayName || '';
@@ -415,12 +459,47 @@
             });
         }
 
-        function handlePlatformConnect(platform) {
+        async function handlePlatformConnect(platform) {
             if (dashboardState.requiresUpgrade) {
                 showToast(`Upgrade to connect ${platform}.`);
                 return;
             }
-            showToast(`${platform} connected successfully!`);
+
+            const key = platform.toLowerCase();
+            if (connectionState.destinations[key]?.channel) {
+                await disconnectPlatform(platform);
+                return;
+            }
+
+            switch (platform) {
+                case 'YouTube':
+                    await initiateOAuthFlow('google', platform);
+                    break;
+                case 'Twitch':
+                    await initiateOAuthFlow('twitch', platform);
+                    break;
+                default:
+                    showToast(`${platform} requires manual RTMP setup. Use the studio fallback input.`);
+                    break;
+            }
+        }
+
+        async function disconnectPlatform(platform) {
+            const key = platform.toLowerCase();
+            if (!dashboardState.userId) return;
+            try {
+                await fetch('/api/oauth/disconnect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: dashboardState.userId, platform: key })
+                });
+                delete connectionState.destinations[key];
+                renderDestinationBadges();
+                showToast(`${platform} disconnected`);
+            } catch (error) {
+                console.error('Unable to disconnect', error);
+                showToast(`Unable to disconnect ${platform}`);
+            }
         }
 
         function handleStreamAction(message) {
@@ -430,6 +509,69 @@
             }
             showToast(message);
             appendTimelineItem(message);
+        }
+
+        async function initiateOAuthFlow(provider, platformLabel) {
+            const redirectUri = `${window.location.origin}/dashboard.html`;
+            const endpoint = provider === 'google' ? '/api/oauth/google/url' : '/api/oauth/twitch/url';
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: dashboardState.userId, redirectUri })
+            });
+            const payload = await response.json();
+            if (!payload.url) {
+                showToast(`Unable to start ${platformLabel} auth.`);
+                return;
+            }
+            rememberOAuthState(payload.url, provider);
+            window.location.href = payload.url;
+        }
+
+        function rememberOAuthState(url, provider) {
+            try {
+                const stateParam = new URL(url).searchParams.get('state');
+                const cache = JSON.parse(sessionStorage.getItem(OAUTH_STATE_CACHE_KEY) || '{}');
+                cache[stateParam] = provider;
+                sessionStorage.setItem(OAUTH_STATE_CACHE_KEY, JSON.stringify(cache));
+            } catch (error) {
+                console.warn('Unable to remember OAuth state', error);
+            }
+        }
+
+        async function handleOAuthReturn() {
+            const params = new URLSearchParams(window.location.search);
+            const code = params.get('code');
+            const state = params.get('state');
+            if (!code || !state) return;
+
+            const provider = recallProvider(state);
+            const redirectUri = `${window.location.origin}/dashboard.html`;
+            const endpoint = provider === 'twitch' ? '/api/oauth/twitch/callback' : '/api/oauth/google/callback';
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code, state, redirectUri })
+            });
+            if (response.ok) {
+                await fetchConnectionState();
+                showToast('Connection saved');
+            } else {
+                showToast('Unable to complete OAuth flow');
+            }
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        function recallProvider(state) {
+            try {
+                const cache = JSON.parse(sessionStorage.getItem(OAUTH_STATE_CACHE_KEY) || '{}');
+                const provider = cache[state];
+                delete cache[state];
+                sessionStorage.setItem(OAUTH_STATE_CACHE_KEY, JSON.stringify(cache));
+                return provider;
+            } catch (error) {
+                return 'google';
+            }
         }
 
         function launchStudioSession({ title = '', mode = 'live' } = {}) {
