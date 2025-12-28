@@ -1,17 +1,22 @@
-// Firebase Configuration
-// Replace these values with your actual Firebase project configuration
-const firebaseConfig = {
-    apiKey: "AIzaSyBhzWdFbh0uiwLv_gUAqfsPFgDF3g0ehkY",
-  authDomain: "lettuce-stream.firebaseapp.com",
-  projectId: "lettuce-stream",
-  storageBucket: "lettuce-stream.firebasestorage.app",
-  messagingSenderId: "123320097160",
-  appId: "1:123320097160:web:3fcc5438b795926915823d",
-  measurementId: "G-4Z6SGR0T1T"
-};
+// Firebase configuration is injected at deploy time via window.__FIREBASE_CONFIG__
+// so nothing sensitive lives in the repository. Vercel should set this global in
+// a script tag before loading any app bundles.
+const firebaseConfig = (() => {
+  if (typeof window === 'undefined') {
+    throw new Error('Firebase config is unavailable during server-side rendering.');
+  }
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+  if (!window.__FIREBASE_CONFIG__) {
+    throw new Error('Missing window.__FIREBASE_CONFIG__. Make sure Vercel injects the Firebase config.');
+  }
+
+  return window.__FIREBASE_CONFIG__;
+})();
+
+// Initialize Firebase (guard in case scripts re-run)
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
 
 // Initialize Firebase Authentication
 const auth = firebase.auth();
