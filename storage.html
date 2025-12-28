@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Storage - Lettuce Stream</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --storage-bg: #f6f8ff;
+            --storage-panel: #ffffff;
+            --storage-border: rgba(15, 23, 42, 0.08);
+            --storage-muted: rgba(15, 23, 42, 0.65);
+            --storage-accent: #f5d547;
+        }
+        body {
+            margin: 0;
+            font-family: 'Inter', 'Space Grotesk', sans-serif;
+            background: var(--storage-bg);
+            color: #0f172a;
+        }
+        .storage-atmosphere {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background: radial-gradient(circle at 25% 20%, rgba(245, 213, 71, 0.15), transparent 55%),
+                        radial-gradient(circle at 75% 10%, rgba(79, 70, 229, 0.16), transparent 60%);
+            opacity: 0.7;
+        }
+        .storage-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 40px;
+        }
+        .storage-logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            color: inherit;
+            text-decoration: none;
+        }
+        .storage-shell {
+            position: relative;
+            z-index: 1;
+            padding: 0 40px 60px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        .storage-panel {
+            background: var(--storage-panel);
+            border: 1px solid var(--storage-border);
+            border-radius: 28px;
+            padding: 28px;
+            box-shadow: 0 30px 60px rgba(15, 23, 42, 0.08);
+        }
+        .storage-hero {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .storage-hero h1 {
+            margin: 0;
+            font-size: 2.25rem;
+        }
+        .storage-stats {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .storage-stat {
+            min-width: 140px;
+            padding: 16px 18px;
+            border-radius: 18px;
+            border: 1px solid var(--storage-border);
+            background: rgba(15, 23, 42, 0.02);
+        }
+        .storage-stat span {
+            display: block;
+            color: var(--storage-muted);
+            font-size: 0.9rem;
+            margin-bottom: 6px;
+        }
+        .upload-dropzone {
+            border: 2px dashed rgba(15, 23, 42, 0.12);
+            border-radius: 22px;
+            padding: 40px;
+            text-align: center;
+            transition: border-color 0.2s ease, background 0.2s ease;
+        }
+        .upload-dropzone.dragover {
+            border-color: var(--storage-accent);
+            background: rgba(245, 213, 71, 0.08);
+        }
+        .upload-dropzone button {
+            margin-top: 16px;
+        }
+        .btn-secondary {
+            border: 1px solid rgba(15, 23, 42, 0.2);
+            border-radius: 999px;
+            padding: 10px 18px;
+            background: transparent;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .storage-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 20px;
+        }
+        .asset-card {
+            border: 1px solid var(--storage-border);
+            border-radius: 20px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: rgba(15, 23, 42, 0.01);
+        }
+        .asset-preview {
+            border-radius: 14px;
+            overflow: hidden;
+            background: #0f172a;
+            min-height: 140px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+        }
+        .asset-preview video,
+        .asset-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .asset-preview audio {
+            width: 100%;
+        }
+        .asset-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .asset-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .asset-actions button {
+            flex: 1;
+            border-radius: 999px;
+            border: 1px solid var(--storage-border);
+            padding: 8px 10px;
+            font-weight: 600;
+            cursor: pointer;
+            background: transparent;
+        }
+        .recordings-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .recording-row {
+            border: 1px solid var(--storage-border);
+            border-radius: 18px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .recording-row video {
+            width: 100%;
+            border-radius: 12px;
+            max-height: 220px;
+        }
+        .storage-empty {
+            border: 1px dashed rgba(15, 23, 42, 0.2);
+            border-radius: 18px;
+            padding: 24px;
+            text-align: center;
+            color: var(--storage-muted);
+        }
+        .storage-muted {
+            color: var(--storage-muted);
+            margin: 0;
+        }
+        .storage-message {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 14px 18px;
+            border-radius: 14px;
+            background: rgba(15, 23, 42, 0.9);
+            color: #f7fafc;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        .storage-message.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        @media (max-width: 800px) {
+            .storage-shell {
+                padding: 0 20px 40px;
+            }
+            .storage-nav {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="storage-atmosphere" aria-hidden="true"></div>
+    <nav class="storage-nav">
+        <a href="dashboard.html" class="storage-logo">
+            <svg width="34" height="34" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <rect width="32" height="32" rx="8" fill="#F5D547" />
+                <path d="M12 9L22 16L12 23V9Z" fill="#0F172A" />
+            </svg>
+            <span>Lettuce Stream</span>
+        </a>
+        <div class="settings-nav-actions">
+            <a href="dashboard.html" class="ghost-link">Back to dashboard</a>
+        </div>
+    </nav>
+
+    <main class="storage-shell">
+        <section class="storage-panel storage-hero">
+            <div>
+                <p class="eyebrow">Library</p>
+                <h1>Your storage vault</h1>
+                <p class="storage-muted">Upload reference assets, graphics, and review recordings captured in the studio.</p>
+            </div>
+            <div class="storage-stats">
+                <div class="storage-stat">
+                    <span>Assets</span>
+                    <strong id="assetCount">0</strong>
+                </div>
+                <div class="storage-stat">
+                    <span>Recorded sessions</span>
+                    <strong id="recordingCount">0</strong>
+                </div>
+                <div class="storage-stat">
+                    <span>Total size</span>
+                    <strong id="librarySize">0 MB</strong>
+                </div>
+            </div>
+        </section>
+
+        <section class="storage-panel">
+            <div class="panel-header">
+                <div>
+                    <p class="eyebrow">Upload</p>
+                    <h2>Add images, clips, or audio</h2>
+                </div>
+            </div>
+            <div class="upload-dropzone" id="uploadZone" tabindex="0">
+                <p>Drag and drop files here or browse from your device.</p>
+                <input type="file" id="assetInput" accept="image/*,video/*,audio/*" multiple hidden>
+                <button type="button" class="btn-secondary" id="browseAssets">Browse files</button>
+            </div>
+        </section>
+
+        <section class="storage-panel">
+            <div class="panel-header">
+                <div>
+                    <p class="eyebrow">Library</p>
+                    <h2>Uploaded assets</h2>
+                </div>
+            </div>
+            <div id="assetsGrid" class="storage-grid"></div>
+            <div id="assetsEmpty" class="storage-empty" hidden>No uploads yet. Drag files above to add them.</div>
+        </section>
+
+        <section class="storage-panel">
+            <div class="panel-header">
+                <div>
+                    <p class="eyebrow">Recordings</p>
+                    <h2>Studio captures</h2>
+                </div>
+            </div>
+            <div id="recordingsList" class="recordings-list"></div>
+            <div id="recordingsEmpty" class="storage-empty" hidden>No recordings yet. Head to the studio and start capturing.</div>
+        </section>
+    </main>
+
+    <div class="storage-message" id="storageMessage" role="status" aria-live="polite"></div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="storage-helpers.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const uploadZone = document.getElementById('uploadZone');
+            const browseButton = document.getElementById('browseAssets');
+            const fileInput = document.getElementById('assetInput');
+            const assetsGrid = document.getElementById('assetsGrid');
+            const assetsEmpty = document.getElementById('assetsEmpty');
+            const recordingsList = document.getElementById('recordingsList');
+            const recordingsEmpty = document.getElementById('recordingsEmpty');
+            const assetCount = document.getElementById('assetCount');
+            const recordingCount = document.getElementById('recordingCount');
+            const librarySize = document.getElementById('librarySize');
+            const messageEl = document.getElementById('storageMessage');
+            const storageApi = window.storageHelpers;
+            const MAX_FILE_SIZE_MB = 150;
+            let activeUser = null;
+            let library = [];
+
+            if (!storageApi) {
+                showMessage('Storage helpers failed to load.', true);
+                return;
+            }
+
+            if (typeof auth === 'undefined') {
+                showMessage('Firebase failed to load. Refresh to try again.', true);
+                return;
+            }
+
+            auth.onAuthStateChanged((user) => {
+                if (!user) {
+                    window.location.href = 'signin.html?next=storage';
+                    return;
+                }
+                activeUser = user;
+                library = storageApi.readAssets(activeUser.uid);
+                renderLibrary();
+            });
+
+            browseButton.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', async (event) => {
+                const { files } = event.target;
+                if (files && files.length) {
+                    await handleUploads(files);
+                    fileInput.value = '';
+                }
+            });
+
+            ['dragenter', 'dragover'].forEach((type) => {
+                uploadZone.addEventListener(type, (event) => {
+                    event.preventDefault();
+                    uploadZone.classList.add('dragover');
+                });
+            });
+            ['dragleave', 'drop'].forEach((type) => {
+                uploadZone.addEventListener(type, (event) => {
+                    event.preventDefault();
+                    if (type === 'drop' && event.dataTransfer?.files?.length) {
+                        handleUploads(event.dataTransfer.files);
+                    }
+                    uploadZone.classList.remove('dragover');
+                });
+            });
+
+            async function handleUploads(fileList) {
+                if (!activeUser) {
+                    return;
+                }
+                const files = Array.from(fileList);
+                for (const file of files) {
+                    const sizeMb = file.size / (1024 * 1024);
+                    if (sizeMb > MAX_FILE_SIZE_MB) {
+                        showMessage(`${file.name} is larger than ${MAX_FILE_SIZE_MB} MB.`, true);
+                        continue;
+                    }
+                    const dataUrl = await fileToDataUrl(file);
+                    const entry = {
+                        id: `asset_${Date.now()}_${file.lastModified}`,
+                        kind: 'upload',
+                        title: file.name,
+                        mimeType: file.type,
+                        size: file.size,
+                        createdAt: new Date().toISOString(),
+                        dataUrl
+                    };
+                    storageApi.addAsset(activeUser.uid, entry);
+                }
+                library = storageApi.readAssets(activeUser.uid);
+                renderLibrary();
+                showMessage('Upload complete.');
+            }
+
+            function renderLibrary() {
+                const uploads = library.filter((asset) => asset.kind !== 'recording');
+                const recordings = library.filter((asset) => asset.kind === 'recording');
+                assetCount.textContent = uploads.length;
+                recordingCount.textContent = recordings.length;
+                librarySize.textContent = formatBytes(library.reduce((sum, item) => sum + (item.size || 0), 0));
+                renderUploads(uploads);
+                renderRecordings(recordings);
+            }
+
+            function renderUploads(uploads) {
+                assetsGrid.innerHTML = '';
+                if (!uploads.length) {
+                    assetsEmpty.hidden = false;
+                    return;
+                }
+                assetsEmpty.hidden = true;
+                uploads.forEach((asset) => {
+                    const card = document.createElement('article');
+                    card.className = 'asset-card';
+                    card.innerHTML = `
+                        <div class="asset-preview">${renderPreview(asset)}</div>
+                        <div class="asset-meta">
+                            <strong>${asset.title || 'Untitled asset'}</strong>
+                            <span>${asset.mimeType || 'Unknown type'} · ${formatBytes(asset.size)}</span>
+                        </div>
+                        <div class="asset-actions">
+                            <button type="button" data-action="download">Download</button>
+                            <button type="button" data-action="delete">Delete</button>
+                        </div>
+                    `;
+                    card.querySelector('[data-action="download"]').addEventListener('click', () => downloadAsset(asset));
+                    card.querySelector('[data-action="delete"]').addEventListener('click', () => deleteAsset(asset.id));
+                    assetsGrid.appendChild(card);
+                });
+            }
+
+            function renderRecordings(recordings) {
+                recordingsList.innerHTML = '';
+                if (!recordings.length) {
+                    recordingsEmpty.hidden = false;
+                    return;
+                }
+                recordingsEmpty.hidden = true;
+                recordings.forEach((recording) => {
+                    const row = document.createElement('article');
+                    row.className = 'recording-row';
+                    row.innerHTML = `
+                        <video controls src="${recording.dataUrl}"></video>
+                        <div>
+                            <strong>${recording.title || 'Studio recording'}</strong>
+                            <p class="storage-muted">${formatTimestamp(recording.createdAt)} · ${formatDuration(recording.duration)}</p>
+                        </div>
+                        <div class="asset-actions">
+                            <button type="button" data-action="download">Download</button>
+                            <button type="button" data-action="delete">Delete</button>
+                        </div>
+                    `;
+                    row.querySelector('[data-action="download"]').addEventListener('click', () => downloadAsset(recording));
+                    row.querySelector('[data-action="delete"]').addEventListener('click', () => deleteAsset(recording.id));
+                    recordingsList.appendChild(row);
+                });
+            }
+
+            function renderPreview(asset) {
+                if (!asset?.dataUrl) {
+                    return '<span>No preview</span>';
+                }
+                if ((asset.mimeType || '').startsWith('image/')) {
+                    return `<img src="${asset.dataUrl}" alt="${asset.title || 'Uploaded image'}">`;
+                }
+                if ((asset.mimeType || '').startsWith('video/')) {
+                    return `<video src="${asset.dataUrl}" muted loop playsinline></video>`;
+                }
+                if ((asset.mimeType || '').startsWith('audio/')) {
+                    return `<audio controls src="${asset.dataUrl}"></audio>`;
+                }
+                return `<span>${asset.mimeType || 'Unknown file'}</span>`;
+            }
+
+            function downloadAsset(asset) {
+                if (!asset?.dataUrl) {
+                    return;
+                }
+                const link = document.createElement('a');
+                link.href = asset.dataUrl;
+                link.download = asset.title || 'asset';
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+            }
+
+            function deleteAsset(assetId) {
+                if (!activeUser || !assetId) {
+                    return;
+                }
+                storageApi.deleteAsset(activeUser.uid, assetId);
+                library = storageApi.readAssets(activeUser.uid);
+                renderLibrary();
+                showMessage('Asset removed.');
+            }
+
+            function formatBytes(bytes = 0) {
+                if (!bytes) return '0 MB';
+                const mb = bytes / (1024 * 1024);
+                if (mb < 1) {
+                    return `${(bytes / 1024).toFixed(1)} KB`;
+                }
+                return `${mb.toFixed(1)} MB`;
+            }
+
+            function formatDuration(ms = 0) {
+                if (!ms) {
+                    return '—';
+                }
+                const seconds = Math.floor(ms / 1000);
+                const mins = Math.floor(seconds / 60);
+                const remaining = seconds % 60;
+                return `${mins}m ${remaining}s`;
+            }
+
+            function formatTimestamp(value) {
+                if (!value) {
+                    return 'Unknown date';
+                }
+                try {
+                    const date = new Date(value);
+                    return date.toLocaleString();
+                } catch (error) {
+                    return value;
+                }
+            }
+
+            function fileToDataUrl(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            function showMessage(message, isError = false) {
+                if (!messageEl) {
+                    return;
+                }
+                messageEl.textContent = message;
+                messageEl.style.background = isError ? '#ff5c5c' : 'rgba(15, 23, 42, 0.9)';
+                messageEl.classList.add('visible');
+                clearTimeout(showMessage.timeoutId);
+                showMessage.timeoutId = setTimeout(() => messageEl.classList.remove('visible'), 2500);
+            }
+        });
+    </script>
+</body>
+</html>

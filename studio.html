@@ -76,11 +76,7 @@
             color: var(--studio-text);
             padding: 4px 0;
         }
-        .studio-topbar h1 {
-            margin: 0;
-            font-size: 1.6rem;
-            letter-spacing: -0.02em;
-        }
+        .studio-topbar h1,
         .studio-stream-title {
             margin: 0;
             font-size: 1.6rem;
@@ -227,16 +223,47 @@
             position: absolute;
             top: 16px;
             right: 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
             background: var(--studio-pill-bg);
-            padding: 10px 16px;
+            padding: 8px 16px;
             border-radius: 999px;
             font-weight: 600;
             border: 1px solid var(--studio-border);
-            cursor: pointer;
             color: var(--studio-text);
         }
-        .stage-watermark:hover {
-            background: rgba(245, 213, 71, 0.2);
+        .stage-watermark[data-hidden="true"] {
+            display: none;
+        }
+        .watermark-text {
+            cursor: text;
+            border-bottom: 1px dashed transparent;
+        }
+        .watermark-text[data-editing="true"] {
+            border-bottom-color: var(--studio-border);
+        }
+        .watermark-text:focus {
+            outline: none;
+            border-bottom-color: var(--studio-accent);
+        }
+        .watermark-remove {
+            background: transparent;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            color: inherit;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+        .stage-watermark:hover .watermark-remove {
+            opacity: 0.85;
         }
         .video-fallback {
             position: absolute;
@@ -249,6 +276,11 @@
             font-size: 1.1rem;
             text-align: center;
             padding: 0 40px;
+        }
+        .watermark-restore {
+            align-self: flex-end;
+            margin-top: -4px;
+            margin-bottom: 8px;
         }
         .stage-footer {
             display: flex;
@@ -413,9 +445,13 @@
             <section class="studio-stage">
                 <div class="stage-video">
                     <video id="studioFeed" autoplay playsinline muted></video>
-                    <button type="button" class="stage-watermark" id="studioWatermark">Lettuce Stream</button>
+                    <div class="stage-watermark" id="studioWatermark">
+                        <span id="watermarkText" class="watermark-text" role="textbox" aria-label="Watermark text" tabindex="0">Lettuce Stream</span>
+                        <button type="button" class="watermark-remove" id="watermarkRemove" aria-label="Remove watermark">×</button>
+                    </div>
                     <div class="video-fallback" id="cameraFallback">Allow camera access to preview your studio feed.</div>
                 </div>
+                <button type="button" class="studio-btn ghost watermark-restore" id="restoreWatermarkButton" hidden>Restore watermark</button>
                 <div class="stage-footer">
                     <div class="status-pill" id="previewStatus">Preview mode active</div>
                     <div class="studio-levels">
@@ -470,6 +506,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="firebase-config.js"></script>
+    <script src="storage-helpers.js"></script>
     <script>
         (function () {
             const PAID_STATUS_KEYS = ['active', 'paid', 'upgraded', 'cancelling'];
@@ -481,17 +518,26 @@
             const recordToggleLabel = document.getElementById('recordToggleLabel');
             const goLiveButton = document.getElementById('goLiveButton');
             const toastEl = document.getElementById('studioToast');
-            const watermarkButton = document.getElementById('studioWatermark');
             const fallbackEl = document.getElementById('cameraFallback');
             const videoEl = document.getElementById('studioFeed');
             const themeToggle = document.getElementById('studioThemeToggle');
             const shell = document.getElementById('studioShell');
             const upgradeButton = document.getElementById('studioUpgradeButton');
+            const watermarkContainer = document.getElementById('studioWatermark');
+            const watermarkTextEl = document.getElementById('watermarkText');
+            const watermarkRemoveButton = document.getElementById('watermarkRemove');
+            const watermarkRestoreButton = document.getElementById('restoreWatermarkButton');
+            const storageApi = window.storageHelpers || null;
             const bodyEl = document.body;
             let cameraStream = null;
+            let mediaRecorder = null;
+            let recordedChunks = [];
+            let recordingStartedAt = null;
             let isLive = false;
             let isRecording = false;
+            let activeUser = null;
             let currentTitle = '';
+            let watermarkTextValue = 'Lettuce Stream';
 
             const sessionTitle = params.get('title') ? decodeURIComponent(params.get('title')) : 'Untitled session';
             const modeParam = params.get('mode') === 'record' ? 'Record session' : 'Live preview';
@@ -499,6 +545,7 @@
             setStreamTitle(sessionTitle);
             initTitleEditing();
             initTheme();
+            initWatermarkControls();
 
             function showToast(message) {
                 if (!toastEl) return;
@@ -522,6 +569,7 @@
                         const doc = await db.collection('users').doc(user.uid).get();
                         const status = (doc.exists ? doc.data().status : 'trial') || 'trial';
                         const isPaidUser = PAID_STATUS_KEYS.includes(String(status).toLowerCase());
+                        activeUser = user;
                         if (upgradeButton) {
                             upgradeButton.hidden = isPaidUser;
                         }
@@ -554,11 +602,76 @@
             }
 
             function toggleRecording() {
-                isRecording = !isRecording;
+                if (!cameraStream) {
+                    showToast('Camera feed is not ready yet.');
+                    return;
+                }
+                if (typeof MediaRecorder === 'undefined') {
+                    showToast('Recording is not supported in this browser.');
+                    return;
+                }
+                if (isRecording) {
+                    stopRecording({ reason: 'Recording stopped' });
+                } else {
+                    startRecording();
+                }
+            }
+
+            function startRecording() {
+                try {
+                    recordedChunks = [];
+                    mediaRecorder = new MediaRecorder(cameraStream, { mimeType: 'video/webm;codecs=vp9,opus' });
+                } catch (error) {
+                    console.warn('Unable to initialize recorder, falling back to default codec.', error);
+                    try {
+                        mediaRecorder = new MediaRecorder(cameraStream);
+                    } catch (fallbackError) {
+                        console.error('Recording unavailable:', fallbackError);
+                        showToast('Recording failed to start.');
+                        return;
+                    }
+                }
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data && event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+                mediaRecorder.onstop = finalizeRecording;
+                mediaRecorder.start();
+                recordingStartedAt = Date.now();
+                setRecordingState(true);
+                showToast('Recording started.');
+            }
+
+            function stopRecording({ reason } = {}) {
+                if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+                    return;
+                }
+                showToast(reason ? `${reason}. Finalizing…` : 'Finalizing recording…');
+                mediaRecorder.stop();
+            }
+
+            async function finalizeRecording() {
+                setRecordingState(false);
+                if (!recordedChunks.length) {
+                    showToast('Recording ended, but no video was captured.');
+                    return;
+                }
+                const recordingDuration = recordingStartedAt ? Math.max(Date.now() - recordingStartedAt, 0) : 0;
+                const blob = new Blob(recordedChunks, { type: mediaRecorder?.mimeType || 'video/webm' });
+                const safeName = formatFileName(currentTitle);
+                downloadRecordingBlob(blob, `${safeName}-${Date.now()}.webm`);
+                await persistRecordingAsset(blob, { durationMs: recordingDuration, title: currentTitle });
+                recordedChunks = [];
+                mediaRecorder = null;
+            }
+
+            function setRecordingState(active) {
+                isRecording = Boolean(active);
                 recordToggle.dataset.recording = String(isRecording);
                 recordToggle.setAttribute('aria-pressed', String(isRecording));
                 recordToggleLabel.textContent = isRecording ? 'Recording…' : 'Record standby';
-                showToast(isRecording ? 'Recording buffer armed.' : 'Recording paused.');
             }
 
             function toggleGoLive() {
@@ -566,16 +679,14 @@
                 goLiveButton.textContent = isLive ? 'End stream' : 'Go live';
                 goLiveButton.classList.toggle('secondary', isLive);
                 goLiveButton.classList.toggle('primary', !isLive);
+                if (!isLive && isRecording) {
+                    stopRecording({ reason: 'Stream ended' });
+                }
                 showToast(isLive ? 'You are live across all destinations.' : 'Stream ended.');
             }
 
-            function openUpgrade(message) {
-                showToast(message || 'Upgrade to customize your studio.');
-                window.open('checkout.html?plan=pro', '_blank');
-            }
-
             function toggleTheme() {
-                const nextTheme = (bodyEl.dataset.theme === 'dark') ? 'light' : 'dark';
+                const nextTheme = bodyEl.dataset.theme === 'dark' ? 'light' : 'dark';
                 applyTheme(nextTheme);
             }
 
@@ -657,6 +768,88 @@
                 document.title = `${value} · Lettuce Stream Studio`;
             }
 
+            function initWatermarkControls() {
+                if (!watermarkTextEl) {
+                    return;
+                }
+                setWatermarkText(watermarkTextValue);
+                watermarkTextEl.addEventListener('click', beginWatermarkEdit);
+                watermarkTextEl.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        commitWatermarkEdit();
+                    } else if (event.key === 'Escape') {
+                        event.preventDefault();
+                        commitWatermarkEdit({ revert: true });
+                    }
+                });
+                watermarkTextEl.addEventListener('blur', () => {
+                    if (watermarkTextEl.dataset.editing === 'true') {
+                        commitWatermarkEdit();
+                    }
+                });
+                if (watermarkRemoveButton) {
+                    watermarkRemoveButton.addEventListener('click', (event) => {
+                        event.stopPropagation();
+                        removeWatermark();
+                    });
+                }
+                if (watermarkRestoreButton) {
+                    watermarkRestoreButton.addEventListener('click', restoreWatermark);
+                }
+            }
+
+            function beginWatermarkEdit() {
+                if (!watermarkTextEl || watermarkTextEl.dataset.editing === 'true') {
+                    return;
+                }
+                watermarkTextEl.dataset.editing = 'true';
+                watermarkTextEl.setAttribute('contenteditable', 'true');
+                watermarkTextEl.focus();
+                const range = document.createRange();
+                range.selectNodeContents(watermarkTextEl);
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }
+
+            function commitWatermarkEdit({ revert = false } = {}) {
+                if (!watermarkTextEl) {
+                    return;
+                }
+                const nextValue = revert ? watermarkTextValue : (watermarkTextEl.textContent || '').trim() || 'Lettuce Stream';
+                setWatermarkText(nextValue);
+                watermarkTextEl.dataset.editing = 'false';
+                watermarkTextEl.removeAttribute('contenteditable');
+            }
+
+            function setWatermarkText(value) {
+                watermarkTextValue = value;
+                if (watermarkTextEl) {
+                    watermarkTextEl.textContent = value;
+                }
+            }
+
+            function removeWatermark() {
+                if (watermarkContainer) {
+                    watermarkContainer.setAttribute('data-hidden', 'true');
+                }
+                if (watermarkRestoreButton) {
+                    watermarkRestoreButton.hidden = false;
+                }
+                showToast('Watermark removed for this session.');
+            }
+
+            function restoreWatermark() {
+                if (watermarkContainer) {
+                    watermarkContainer.removeAttribute('data-hidden');
+                }
+                if (watermarkRestoreButton) {
+                    watermarkRestoreButton.hidden = true;
+                }
+                showToast('Watermark restored.');
+            }
+
             function wireButtons() {
                 document.getElementById('studioBack').addEventListener('click', () => {
                     window.location.href = 'dashboard.html';
@@ -665,9 +858,8 @@
                 goLiveButton.addEventListener('click', toggleGoLive);
                 themeToggle.addEventListener('click', toggleTheme);
                 if (upgradeButton) {
-                    upgradeButton.addEventListener('click', () => openUpgrade('Go Pro to unlock 4K, graphics, and multi-guest slots.'));
+                    upgradeButton.addEventListener('click', () => window.location.href = 'checkout.html?plan=pro');
                 }
-                watermarkButton.addEventListener('click', () => openUpgrade('Upgrade to rename or remove the Lettuce Stream watermark.'));
                 document.getElementById('topAddChannel').addEventListener('click', () => {
                     window.open('dashboard.html#channels', '_blank');
                     showToast('Channel picker opened in a new tab.');
@@ -680,7 +872,7 @@
                     window.open('dashboard.html#scheduleLab', '_blank');
                     showToast('Scheduler opened.');
                 });
-                document.getElementById('addSceneButton').addEventListener('click', () => showToast('Scene library coming soon.')); 
+                document.getElementById('addSceneButton').addEventListener('click', () => showToast('Scene library coming soon.'));
                 document.querySelectorAll('.tool-row').forEach((row) => {
                     row.addEventListener('click', () => {
                         const label = row.dataset.tool || 'Tool';
@@ -689,7 +881,55 @@
                 });
             }
 
+            async function persistRecordingAsset(blob, metadata = {}) {
+                if (!storageApi || !activeUser) {
+                    return;
+                }
+                try {
+                    const dataUrl = await blobToDataUrl(blob);
+                    storageApi.addAsset(activeUser.uid, {
+                        id: `rec_${Date.now()}`,
+                        kind: 'recording',
+                        title: metadata.title || 'Session recording',
+                        mimeType: blob.type,
+                        size: blob.size,
+                        duration: metadata.durationMs || 0,
+                        createdAt: new Date().toISOString(),
+                        dataUrl
+                    });
+                } catch (error) {
+                    console.warn('Unable to store recording locally:', error);
+                }
+            }
+
+            function downloadRecordingBlob(blob, filename) {
+                const url = URL.createObjectURL(blob);
+                const anchor = document.createElement('a');
+                anchor.href = url;
+                anchor.download = filename;
+                document.body.appendChild(anchor);
+                anchor.click();
+                anchor.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 0);
+            }
+
+            function formatFileName(text) {
+                return (text || 'session').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'session';
+            }
+
+            function blobToDataUrl(blob) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+            }
+
             window.addEventListener('beforeunload', () => {
+                if (isRecording) {
+                    stopRecording({ reason: 'Window closing' });
+                }
                 if (cameraStream) {
                     cameraStream.getTracks().forEach((track) => track.stop());
                 }
