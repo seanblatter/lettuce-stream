@@ -98,7 +98,7 @@
                 },
                 starter: {
                     label: 'Starter',
-                    priceLabel: '$9 / month',
+                    priceLabel: '$19 / month',
                     description: 'For emerging creators learning multi-streaming fundamentals.',
                     features: [
                         'Stream to 2 destinations',
@@ -186,10 +186,10 @@
                 const planEntry = PLAN_CATALOG[planKey] || PLAN_CATALOG.trial;
                 const status = (activeProfile.status || 'trial').toLowerCase();
                 const cancelsAt = parseTimestamp(activeProfile.cancelsAt);
-                const renewsAt = parseTimestamp(activeProfile.renewsAt);
                 const now = new Date();
+                const hasPaidPlan = ['starter', 'pro', 'enterprise'].includes(planKey);
 
-                planNameEl.textContent = `${planEntry.label} plan`;
+                planNameEl.textContent = hasPaidPlan ? `${planEntry.label} plan` : 'Upgrade now';
                 planDescriptionEl.textContent = planEntry.description;
                 planPriceEl.textContent = planEntry.priceLabel;
                 renderFeatureList(planEntry.features);
@@ -202,7 +202,6 @@
                 renewalValueEl.textContent = renewalDate ? formatFullDate(renewalDate) : 'Not scheduled';
 
                 const cancellationScheduled = status === 'cancelling' && cancelsAt && cancelsAt > now;
-                const hasPaidPlan = ['starter', 'pro', 'enterprise'].includes(planKey);
 
                 cancelButton.hidden = !hasPaidPlan;
                 if (hasPaidPlan) {

@@ -152,7 +152,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             const PLAN_CATALOG = {
                 trial: { label: 'Trial', priceLabel: 'Free during preview' },
-                starter: { label: 'Starter', priceLabel: '$9 / month' },
+                starter: { label: 'Starter', priceLabel: '$19 / month' },
                 pro: { label: 'Pro', priceLabel: '$29 / month' },
                 enterprise: { label: 'Enterprise', priceLabel: '$99 / month' }
             };
@@ -330,12 +330,13 @@
             function refreshSummary() {
                 const planKey = (activeProfile.plan || 'trial').toLowerCase();
                 const planEntry = PLAN_CATALOG[planKey] || PLAN_CATALOG.trial;
+                const hasPaidPlan = ['starter', 'pro', 'enterprise'].includes(planKey);
                 const fullName = activeProfile.fullName || activeUser.displayName || '';
                 const email = activeProfile.email || activeUser.email || '';
                 displayNameEl.textContent = fullName || email || 'Your workspace';
                 nameInput.value = fullName;
                 emailInput.value = email;
-                planBadgeEl.textContent = `${planEntry.label} plan`;
+                planBadgeEl.textContent = hasPaidPlan ? `${planEntry.label} plan` : 'Upgrade now';
                 planPriceEl.textContent = planEntry.priceLabel;
                 emailPreviewEl.textContent = email || '—';
                 const timeZoneValue = activeProfile.timeZone || getBrowserTimeZone();
