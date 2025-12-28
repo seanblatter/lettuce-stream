@@ -10,23 +10,29 @@
     <style>
         :root {
             color-scheme: light dark;
-            --studio-bg: #f6f6fb;
+            --studio-bg: #f4f5fb;
             --studio-panel: #ffffff;
             --studio-accent: #f5d547;
             --studio-accent-soft: rgba(245, 213, 71, 0.2);
             --studio-border: rgba(15, 23, 42, 0.08);
             --studio-text: #0f172a;
-            --studio-muted: rgba(15, 23, 42, 0.65);
+            --studio-muted: rgba(15, 23, 42, 0.66);
             --studio-danger: #ff5c5c;
             --studio-shadow: rgba(15, 23, 42, 0.08);
+            --studio-pill-bg: rgba(15, 23, 42, 0.06);
+            --studio-toast-bg: rgba(15, 23, 42, 0.9);
+            --studio-toast-border: rgba(15, 23, 42, 0.2);
         }
-        [data-theme="dark"] {
-            --studio-bg: #050e1c;
+        body[data-theme="dark"] {
+            --studio-bg: #040916;
             --studio-panel: #0f1c33;
             --studio-border: rgba(255, 255, 255, 0.08);
             --studio-text: #f7fafc;
-            --studio-muted: rgba(247, 250, 252, 0.65);
-            --studio-shadow: rgba(0, 0, 0, 0.35);
+            --studio-muted: rgba(247, 250, 252, 0.7);
+            --studio-shadow: rgba(0, 0, 0, 0.4);
+            --studio-pill-bg: rgba(255, 255, 255, 0.08);
+            --studio-toast-bg: rgba(6, 12, 24, 0.92);
+            --studio-toast-border: rgba(255, 255, 255, 0.12);
         }
         * {
             box-sizing: border-box;
@@ -50,12 +56,12 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-              background: var(--studio-panel);
-              border: 1px solid var(--studio-border);
-              border-radius: 20px;
-              padding: 20px 28px;
-              box-shadow: 0 20px 60px var(--studio-shadow);
-              backdrop-filter: blur(20px);
+            background: var(--studio-panel);
+            border: 1px solid var(--studio-border);
+            border-radius: 20px;
+            padding: 20px 28px;
+            box-shadow: 0 20px 60px var(--studio-shadow);
+            backdrop-filter: blur(20px);
         }
         .studio-title {
             display: flex;
@@ -63,18 +69,36 @@
             gap: 16px;
         }
         .studio-back {
-            width: 36px;
-            height: 36px;
-            border-radius: 12px;
-            border: 1px solid var(--studio-border);
+            border: none;
             background: transparent;
             font-size: 1.2rem;
             cursor: pointer;
+            color: var(--studio-text);
+            padding: 4px 0;
         }
         .studio-topbar h1 {
             margin: 0;
             font-size: 1.6rem;
             letter-spacing: -0.02em;
+        }
+        .studio-stream-title {
+            margin: 0;
+            font-size: 1.6rem;
+            letter-spacing: -0.02em;
+        }
+        .studio-title-text {
+            display: inline-flex;
+            align-items: center;
+            min-width: 120px;
+            border-bottom: 1px dashed transparent;
+            cursor: text;
+        }
+        .studio-title-text[data-editing="true"] {
+            border-bottom-color: var(--studio-border);
+        }
+        .studio-title-text:focus {
+            outline: none;
+            border-bottom-color: var(--studio-accent);
         }
         .studio-topbar p {
             margin: 4px 0 0;
@@ -93,7 +117,7 @@
             font-size: 0.95rem;
             font-weight: 600;
             cursor: pointer;
-            background: rgba(255, 255, 255, 0.08);
+            background: rgba(15, 23, 42, 0.05);
             color: var(--studio-text);
             transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
         }
@@ -105,7 +129,7 @@
             color: #0f172a;
         }
         .studio-btn.secondary {
-            border-color: rgba(255, 255, 255, 0.2);
+            border-color: rgba(15, 23, 42, 0.15);
         }
         .studio-btn.ghost {
             background: transparent;
@@ -115,7 +139,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            border-color: rgba(255, 255, 255, 0.2);
+            border-color: rgba(15, 23, 42, 0.15);
             padding-left: 14px;
         }
         .record-dot {
@@ -203,12 +227,13 @@
             position: absolute;
             top: 16px;
             right: 16px;
-            background: rgba(5, 14, 28, 0.7);
+            background: var(--studio-pill-bg);
             padding: 10px 16px;
             border-radius: 999px;
-            font-weight: 700;
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            font-weight: 600;
+            border: 1px solid var(--studio-border);
             cursor: pointer;
+            color: var(--studio-text);
         }
         .stage-watermark:hover {
             background: rgba(245, 213, 71, 0.2);
@@ -234,11 +259,12 @@
         .status-pill {
             padding: 8px 14px;
             border-radius: 999px;
-            background: rgba(255, 255, 255, 0.07);
+            background: var(--studio-pill-bg);
             font-size: 0.85rem;
             display: inline-flex;
             align-items: center;
             gap: 8px;
+            border: 1px solid var(--studio-border);
         }
         .status-pill::before {
             content: '';
@@ -256,10 +282,10 @@
             display: flex;
             gap: 12px;
             align-items: center;
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--studio-border);
             border-radius: 18px;
             padding: 12px 14px;
-            background: rgba(255, 255, 255, 0.02);
+            background: rgba(15, 23, 42, 0.02);
             cursor: pointer;
             text-align: left;
         }
@@ -270,7 +296,7 @@
             width: 32px;
             height: 32px;
             border-radius: 12px;
-            background: rgba(245, 213, 71, 0.15);
+            background: rgba(245, 213, 71, 0.2);
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -295,7 +321,7 @@
             border-radius: 16px;
             padding: 12px;
             font-weight: 600;
-            border: 1px dashed rgba(255, 255, 255, 0.2);
+            border: 1px dashed var(--studio-border);
             background: transparent;
             color: var(--studio-text);
             cursor: pointer;
@@ -304,14 +330,15 @@
             position: fixed;
             bottom: 24px;
             right: 24px;
-            background: rgba(5, 14, 28, 0.9);
+            background: var(--studio-toast-bg);
             padding: 14px 18px;
             border-radius: 14px;
-            border: 1px solid var(--studio-border);
+            border: 1px solid var(--studio-toast-border);
             opacity: 0;
             transform: translateY(20px);
             transition: opacity 0.2s ease, transform 0.2s ease;
             pointer-events: none;
+            color: #f8fafc;
         }
         .studio-toast.visible {
             opacity: 1;
@@ -338,13 +365,13 @@
     </style>
 </head>
 <body class="studio-body">
-    <div class="studio-shell" id="studioShell" data-theme="light">
+    <div class="studio-shell" id="studioShell">
         <header class="studio-topbar">
             <div class="studio-title">
                 <button class="studio-back" id="studioBack" aria-label="Back to dashboard">&lt;</button>
                 <div>
-                    <h1>
-                        <input type="text" id="studioStreamNameInput" value="Untitled Session" aria-label="Stream title" />
+                    <h1 class="studio-stream-title">
+                        <span id="studioStreamNameDisplay" class="studio-title-text" role="textbox" aria-label="Stream title" tabindex="0" data-editing="false"></span>
                     </h1>
                     <p id="studioModeLabel">Live preview</p>
                 </div>
@@ -446,8 +473,9 @@
     <script>
         (function () {
             const PAID_STATUS_KEYS = ['active', 'paid', 'upgraded', 'cancelling'];
+            const THEME_STORAGE_KEY = 'lettuce-dashboard-theme';
             const params = new URLSearchParams(window.location.search);
-            const streamNameInput = document.getElementById('studioStreamNameInput');
+            const streamTitleDisplay = document.getElementById('studioStreamNameDisplay');
             const streamModeEl = document.getElementById('studioModeLabel');
             const recordToggle = document.getElementById('recordToggle');
             const recordToggleLabel = document.getElementById('recordToggleLabel');
@@ -458,14 +486,19 @@
             const videoEl = document.getElementById('studioFeed');
             const themeToggle = document.getElementById('studioThemeToggle');
             const shell = document.getElementById('studioShell');
+            const upgradeButton = document.getElementById('studioUpgradeButton');
+            const bodyEl = document.body;
             let cameraStream = null;
             let isLive = false;
             let isRecording = false;
+            let currentTitle = '';
 
             const sessionTitle = params.get('title') ? decodeURIComponent(params.get('title')) : 'Untitled session';
             const modeParam = params.get('mode') === 'record' ? 'Record session' : 'Live preview';
-            streamNameInput.value = sessionTitle;
             streamModeEl.textContent = modeParam;
+            setStreamTitle(sessionTitle);
+            initTitleEditing();
+            initTheme();
 
             function showToast(message) {
                 if (!toastEl) return;
@@ -488,7 +521,11 @@
                     try {
                         const doc = await db.collection('users').doc(user.uid).get();
                         const status = (doc.exists ? doc.data().status : 'trial') || 'trial';
-                        if (!PAID_STATUS_KEYS.includes(String(status).toLowerCase())) {
+                        const isPaidUser = PAID_STATUS_KEYS.includes(String(status).toLowerCase());
+                        if (upgradeButton) {
+                            upgradeButton.hidden = isPaidUser;
+                        }
+                        if (!isPaidUser) {
                             window.location.href = 'billing.html';
                             return;
                         }
@@ -538,9 +575,86 @@
             }
 
             function toggleTheme() {
-                const nextTheme = shell.dataset.theme === 'dark' ? 'light' : 'dark';
-                shell.dataset.theme = nextTheme;
-                themeToggle.textContent = nextTheme === 'dark' ? 'Light mode' : 'Dark mode';
+                const nextTheme = (bodyEl.dataset.theme === 'dark') ? 'light' : 'dark';
+                applyTheme(nextTheme);
+            }
+
+            function applyTheme(nextTheme) {
+                bodyEl.dataset.theme = nextTheme;
+                if (shell) {
+                    shell.dataset.theme = nextTheme;
+                }
+                if (themeToggle) {
+                    themeToggle.textContent = nextTheme === 'dark' ? 'Light mode' : 'Dark mode';
+                }
+                try {
+                    localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+                } catch (error) {
+                    console.warn('Unable to persist studio theme preference', error);
+                }
+            }
+
+            function initTheme() {
+                let storedTheme = 'light';
+                try {
+                    storedTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'light';
+                } catch (error) {
+                    storedTheme = 'light';
+                }
+                applyTheme(storedTheme === 'dark' ? 'dark' : 'light');
+            }
+
+            function initTitleEditing() {
+                if (!streamTitleDisplay) {
+                    return;
+                }
+                streamTitleDisplay.addEventListener('click', beginTitleEdit);
+                streamTitleDisplay.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        commitTitleEdit();
+                    } else if (event.key === 'Escape') {
+                        event.preventDefault();
+                        commitTitleEdit({ revert: true });
+                    }
+                });
+                streamTitleDisplay.addEventListener('blur', () => {
+                    if (streamTitleDisplay.dataset.editing === 'true') {
+                        commitTitleEdit();
+                    }
+                });
+            }
+
+            function beginTitleEdit() {
+                if (!streamTitleDisplay || streamTitleDisplay.dataset.editing === 'true') {
+                    return;
+                }
+                streamTitleDisplay.dataset.editing = 'true';
+                streamTitleDisplay.setAttribute('contenteditable', 'true');
+                streamTitleDisplay.focus();
+                const range = document.createRange();
+                range.selectNodeContents(streamTitleDisplay);
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }
+
+            function commitTitleEdit({ revert = false } = {}) {
+                if (!streamTitleDisplay) {
+                    return;
+                }
+                const nextValue = revert ? currentTitle : (streamTitleDisplay.textContent || '').trim() || 'Untitled session';
+                setStreamTitle(nextValue);
+                streamTitleDisplay.dataset.editing = 'false';
+                streamTitleDisplay.removeAttribute('contenteditable');
+            }
+
+            function setStreamTitle(value) {
+                currentTitle = value;
+                if (streamTitleDisplay) {
+                    streamTitleDisplay.textContent = value;
+                }
+                document.title = `${value} · Lettuce Stream Studio`;
             }
 
             function wireButtons() {
@@ -550,7 +664,9 @@
                 recordToggle.addEventListener('click', toggleRecording);
                 goLiveButton.addEventListener('click', toggleGoLive);
                 themeToggle.addEventListener('click', toggleTheme);
-                document.getElementById('studioUpgradeButton').addEventListener('click', () => openUpgrade('Go Pro to unlock 4K, graphics, and multi-guest slots.'));
+                if (upgradeButton) {
+                    upgradeButton.addEventListener('click', () => openUpgrade('Go Pro to unlock 4K, graphics, and multi-guest slots.'));
+                }
                 watermarkButton.addEventListener('click', () => openUpgrade('Upgrade to rename or remove the Lettuce Stream watermark.'));
                 document.getElementById('topAddChannel').addEventListener('click', () => {
                     window.open('dashboard.html#channels', '_blank');
