@@ -128,6 +128,7 @@
                 }
             };
             const PROFILE_CACHE_KEY = 'lettuce-user-cache';
+            const PAID_STATUS_KEYS = ['active', 'paid', 'upgraded', 'cancelling'];
 
             if (typeof auth === 'undefined' || typeof db === 'undefined') {
                 showMessage('Billing requires Firebase. Please refresh the page.', 'error');
@@ -187,12 +188,14 @@
                 const status = (activeProfile.status || 'trial').toLowerCase();
                 const cancelsAt = parseTimestamp(activeProfile.cancelsAt);
                 const now = new Date();
-                const hasPaidPlan = ['starter', 'pro', 'enterprise'].includes(planKey);
+                const hasPaidSubscription = PAID_STATUS_KEYS.includes(status);
 
-                planNameEl.textContent = hasPaidPlan ? `${planEntry.label} plan` : 'Upgrade now';
-                planDescriptionEl.textContent = planEntry.description;
-                planPriceEl.textContent = planEntry.priceLabel;
-                renderFeatureList(planEntry.features);
+                planNameEl.textContent = hasPaidSubscription ? `${planEntry.label} plan` : 'Upgrade now';
+                planDescriptionEl.textContent = hasPaidSubscription
+                    ? planEntry.description
+                    : 'Upgrade to unlock scheduling, multi-streaming, and analytics.';
+                planPriceEl.textContent = hasPaidSubscription ? planEntry.priceLabel : 'Upgrade to unlock multi-streaming';
+                renderFeatureList(hasPaidSubscription ? planEntry.features : []);
 
                 const statusDisplay = formatStatus(status, cancelsAt, now);
                 statusValueEl.textContent = statusDisplay.primary;
@@ -203,18 +206,18 @@
 
                 const cancellationScheduled = status === 'cancelling' && cancelsAt && cancelsAt > now;
 
-                cancelButton.hidden = !hasPaidPlan;
-                if (hasPaidPlan) {
+                cancelButton.hidden = !hasPaidSubscription;
+                if (hasPaidSubscription) {
                     cancelButton.disabled = cancellationScheduled;
                     cancelButton.textContent = cancellationScheduled ? 'Cancellation scheduled' : 'Cancel plan';
                 }
 
                 if (cancellationScheduled && cancelsAt) {
                     actionCopyEl.textContent = `Your plan will end on ${formatFullDate(cancelsAt)}. Contact support if you need to keep access.`;
-                } else if (hasPaidPlan) {
+                } else if (hasPaidSubscription) {
                     actionCopyEl.textContent = 'Cancel anytime. Access stays active through the end of your billing period.';
                 } else {
-                    actionCopyEl.textContent = 'Upgrade to unlock scheduling, multi-streaming, and analytics.';
+                    actionCopyEl.textContent = 'Upgrade now to activate billing controls and go live.';
                 }
             }
 

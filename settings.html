@@ -156,6 +156,7 @@
                 pro: { label: 'Pro', priceLabel: '$29 / month' },
                 enterprise: { label: 'Enterprise', priceLabel: '$99 / month' }
             };
+            const PAID_STATUS_KEYS = ['active', 'paid', 'upgraded', 'cancelling'];
             const PROFILE_CACHE_KEY = 'lettuce-user-cache';
             const helperFallback = { getErrorMessage: () => 'Unable to complete this action. Please try again.' };
             const { getErrorMessage } = (window.authHelpers || helperFallback);
@@ -330,14 +331,15 @@
             function refreshSummary() {
                 const planKey = (activeProfile.plan || 'trial').toLowerCase();
                 const planEntry = PLAN_CATALOG[planKey] || PLAN_CATALOG.trial;
-                const hasPaidPlan = ['starter', 'pro', 'enterprise'].includes(planKey);
+                const status = (activeProfile.status || 'trial').toLowerCase();
+                const hasPaidSubscription = PAID_STATUS_KEYS.includes(status);
                 const fullName = activeProfile.fullName || activeUser.displayName || '';
                 const email = activeProfile.email || activeUser.email || '';
                 displayNameEl.textContent = fullName || email || 'Your workspace';
                 nameInput.value = fullName;
                 emailInput.value = email;
-                planBadgeEl.textContent = hasPaidPlan ? `${planEntry.label} plan` : 'Upgrade now';
-                planPriceEl.textContent = planEntry.priceLabel;
+                planBadgeEl.textContent = hasPaidSubscription ? `${planEntry.label} plan` : 'Upgrade now';
+                planPriceEl.textContent = hasPaidSubscription ? planEntry.priceLabel : 'Upgrade to unlock multi-streaming.';
                 emailPreviewEl.textContent = email || '—';
                 const timeZoneValue = activeProfile.timeZone || getBrowserTimeZone();
                 syncTimeZoneSelect(timeZoneValue);
