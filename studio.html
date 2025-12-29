@@ -594,8 +594,10 @@
     <div class="studio-toast" id="studioToast" role="status" aria-live="polite"></div>
 
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-check-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
     <script src="firebase-config.js"></script>
     <script src="storage-helpers.js"></script>
     <script>
@@ -1475,20 +1477,21 @@
                 if (!storageApi || !state.activeUser) {
                     return;
                 }
+                const title = metadata.title || 'Session recording';
                 try {
-                    const dataUrl = await blobToDataUrl(blob);
-                    storageApi.addAsset(state.activeUser.uid, {
-                        id: `rec_${Date.now()}`,
+                    await storageApi.uploadAsset(state.activeUser.uid, blob, {
                         kind: 'recording',
-                        title: metadata.title || 'Session recording',
+                        title,
+                        fileName: `${formatFileName(title)}.webm`,
                         mimeType: blob.type,
-                        size: blob.size,
-                        duration: metadata.durationMs || 0,
-                        createdAt: new Date().toISOString(),
-                        dataUrl
+                        durationMs: metadata.durationMs || 0
                     });
                 } catch (error) {
-                    console.warn('Unable to store recording locally:', error);
+                    if (error?.code === 'STORAGE_QUOTA_EXCEEDED') {
+                        showToast('Recording was not saved. Storage limit reached.');
+                        return;
+                    }
+                    console.warn('Unable to store recording in cloud:', error);
                 }
             }
 
@@ -1505,15 +1508,6 @@
 
             function formatFileName(text) {
                 return (text || 'session').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'session';
-            }
-
-            function blobToDataUrl(blob) {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result);
-                    reader.onerror = reject;
-                    reader.readAsDataURL(blob);
-                });
             }
 
             window.addEventListener('beforeunload', () => {

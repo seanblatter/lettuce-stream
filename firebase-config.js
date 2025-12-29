@@ -29,6 +29,20 @@ if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
 
+const appCheckSiteKey = (typeof window !== 'undefined' && window.__FIREBASE_APP_CHECK_KEY__)
+  ? window.__FIREBASE_APP_CHECK_KEY__
+  : '6Lc7LzosAAAAAIpMEFqoaRKfoRGbaPxf7D8UGrSm';
+
+if (typeof firebase.appCheck === 'function') {
+  try {
+    firebase.appCheck().activate(appCheckSiteKey, true);
+  } catch (error) {
+    console.warn('[firebase] Unable to activate App Check', error);
+  }
+} else {
+  console.warn('[firebase] App Check SDK not loaded; skipping activation');
+}
+
 // Initialize Firebase Authentication
 const auth = firebase.auth();
 

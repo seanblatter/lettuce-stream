@@ -295,8 +295,10 @@
     <div class="storage-message" id="storageMessage" role="status" aria-live="polite"></div>
 
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-check-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
     <script src="firebase-config.js"></script>
     <script src="storage-helpers.js"></script>
     <script>
@@ -316,6 +318,7 @@
             const MAX_FILE_SIZE_MB = 150;
             let activeUser = null;
             let library = [];
+            let storageContext = null;
 
             if (!storageApi) {
                 showMessage('Storage helpers failed to load.', true);
@@ -327,14 +330,13 @@
                 return;
             }
 
-            auth.onAuthStateChanged((user) => {
+            auth.onAuthStateChanged(async (user) => {
                 if (!user) {
                     window.location.href = 'signin.html?next=storage';
                     return;
                 }
                 activeUser = user;
-                library = storageApi.readAssets(activeUser.uid);
-                renderLibrary();
+                await reloadLibrary();
             });
 
             browseButton.addEventListener('click', () => fileInput.click());
@@ -367,27 +369,53 @@
                     return;
                 }
                 const files = Array.from(fileList);
+                if (!files.length) {
+                    return;
+                }
+                let uploadedCount = 0;
                 for (const file of files) {
                     const sizeMb = file.size / (1024 * 1024);
                     if (sizeMb > MAX_FILE_SIZE_MB) {
                         showMessage(`${file.name} is larger than ${MAX_FILE_SIZE_MB} MB.`, true);
                         continue;
                     }
-                    const dataUrl = await fileToDataUrl(file);
-                    const entry = {
-                        id: `asset_${Date.now()}_${file.lastModified}`,
-                        kind: 'upload',
-                        title: file.name,
-                        mimeType: file.type,
-                        size: file.size,
-                        createdAt: new Date().toISOString(),
-                        dataUrl
-                    };
-                    storageApi.addAsset(activeUser.uid, entry);
+                    try {
+                        await storageApi.uploadAsset(activeUser.uid, file, {
+                            kind: 'upload',
+                            title: file.name
+                        });
+                        uploadedCount += 1;
+                    } catch (error) {
+                        if (error?.code === 'STORAGE_QUOTA_EXCEEDED') {
+                            showMessage('Storage limit reached. Delete files or upgrade to continue.', true);
+                            break;
+                        }
+                        console.error('Unable to upload asset:', error);
+                        showMessage(`Unable to upload ${file.name}. Please try again.`, true);
+                    }
                 }
-                library = storageApi.readAssets(activeUser.uid);
-                renderLibrary();
-                showMessage('Upload complete.');
+                await reloadLibrary();
+                if (uploadedCount) {
+                    showMessage(uploadedCount === 1 ? 'Upload complete.' : `${uploadedCount} files uploaded.`);
+                }
+            }
+
+            async function reloadLibrary() {
+                if (!activeUser) {
+                    return;
+                }
+                try {
+                    const [context, assets] = await Promise.all([
+                        storageApi.getStorageContext(activeUser.uid),
+                        storageApi.listAssets(activeUser.uid)
+                    ]);
+                    storageContext = context;
+                    library = assets;
+                    renderLibrary();
+                } catch (error) {
+                    console.error('Unable to load your storage library:', error);
+                    showMessage('Unable to load your storage library. Please refresh.', true);
+                }
             }
 
             function renderLibrary() {
@@ -395,9 +423,17 @@
                 const recordings = library.filter((asset) => asset.kind === 'recording');
                 assetCount.textContent = uploads.length;
                 recordingCount.textContent = recordings.length;
-                librarySize.textContent = formatBytes(library.reduce((sum, item) => sum + (item.size || 0), 0));
+                librarySize.textContent = formatUsageLabel();
                 renderUploads(uploads);
                 renderRecordings(recordings);
+            }
+
+            function formatUsageLabel() {
+                if (!storageContext) {
+                    const totalBytes = library.reduce((sum, asset) => sum + (asset.size || 0), 0);
+                    return `${formatBytes(totalBytes)} used`;
+                }
+                return `${formatBytes(storageContext.usageBytes)} of ${formatBytes(storageContext.quotaBytes)} used`;
             }
 
             function renderUploads(uploads) {
@@ -438,7 +474,7 @@
                     const row = document.createElement('article');
                     row.className = 'recording-row';
                     row.innerHTML = `
-                        <video controls src="${recording.dataUrl}"></video>
+                        <video controls src="${recording.downloadURL || ''}"></video>
                         <div>
                             <strong>${recording.title || 'Studio recording'}</strong>
                             <p class="storage-muted">${formatTimestamp(recording.createdAt)} · ${formatDuration(recording.duration)}</p>
@@ -455,50 +491,62 @@
             }
 
             function renderPreview(asset) {
-                if (!asset?.dataUrl) {
+                const url = asset.downloadURL || '';
+                if (!url) {
                     return '<span>No preview</span>';
                 }
                 if ((asset.mimeType || '').startsWith('image/')) {
-                    return `<img src="${asset.dataUrl}" alt="${asset.title || 'Uploaded image'}">`;
+                    return `<img src="${url}" alt="${asset.title || 'Uploaded image'}" loading="lazy">`;
                 }
                 if ((asset.mimeType || '').startsWith('video/')) {
-                    return `<video src="${asset.dataUrl}" muted loop playsinline></video>`;
+                    return `<video src="${url}" muted loop playsinline></video>`;
                 }
                 if ((asset.mimeType || '').startsWith('audio/')) {
-                    return `<audio controls src="${asset.dataUrl}"></audio>`;
+                    return `<audio controls src="${url}"></audio>`;
                 }
                 return `<span>${asset.mimeType || 'Unknown file'}</span>`;
             }
 
             function downloadAsset(asset) {
-                if (!asset?.dataUrl) {
+                if (!asset?.downloadURL) {
+                    showMessage('Download link unavailable. Please refresh and try again.', true);
                     return;
                 }
                 const link = document.createElement('a');
-                link.href = asset.dataUrl;
+                link.href = asset.downloadURL;
                 link.download = asset.title || 'asset';
                 document.body.appendChild(link);
                 link.click();
                 link.remove();
             }
 
-            function deleteAsset(assetId) {
+            async function deleteAsset(assetId) {
                 if (!activeUser || !assetId) {
                     return;
                 }
-                storageApi.deleteAsset(activeUser.uid, assetId);
-                library = storageApi.readAssets(activeUser.uid);
-                renderLibrary();
-                showMessage('Asset removed.');
+                try {
+                    await storageApi.deleteAsset(activeUser.uid, assetId);
+                    await reloadLibrary();
+                    showMessage('Asset removed.');
+                } catch (error) {
+                    console.error('Unable to delete asset:', error);
+                    showMessage('Unable to delete asset. Please try again.', true);
+                }
             }
 
             function formatBytes(bytes = 0) {
-                if (!bytes) return '0 MB';
-                const mb = bytes / (1024 * 1024);
-                if (mb < 1) {
-                    return `${(bytes / 1024).toFixed(1)} KB`;
+                if (!bytes) {
+                    return '0 MB';
                 }
-                return `${mb.toFixed(1)} MB`;
+                const gb = bytes / (1024 * 1024 * 1024);
+                if (gb >= 1) {
+                    return `${gb.toFixed(1)} GB`;
+                }
+                const mb = bytes / (1024 * 1024);
+                if (mb >= 1) {
+                    return `${mb.toFixed(1)} MB`;
+                }
+                return `${(bytes / 1024).toFixed(1)} KB`;
             }
 
             function formatDuration(ms = 0) {
@@ -521,15 +569,6 @@
                 } catch (error) {
                     return value;
                 }
-            }
-
-            function fileToDataUrl(file) {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result);
-                    reader.onerror = reject;
-                    reader.readAsDataURL(file);
-                });
             }
 
             function showMessage(message, isError = false) {
