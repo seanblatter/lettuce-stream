@@ -383,9 +383,14 @@
                         continue;
                     }
                     try {
+                        showMessage(`Uploading ${file.name} (0% complete)...`, false, { persist: true });
                         await storageApi.uploadAsset(activeUser.uid, file, {
                             kind: 'upload',
-                            title: file.name
+                            title: file.name,
+                            onProgress: (loaded, total) => {
+                                const percent = total ? Math.floor((loaded / total) * 100) : 0;
+                                showMessage(`Uploading ${file.name} (${percent}% complete)...`, false, { persist: true });
+                            }
                         });
                         uploadedCount += 1;
                         remainingBytes -= file.size;
@@ -575,15 +580,28 @@
                 }
             }
 
-            function showMessage(message, isError = false) {
+            function showMessage(message, isError = false, { persist = false } = {}) {
                 if (!messageEl) {
+                    return;
+                }
+                if (!message) {
+                    messageEl.classList.remove('visible');
+                    messageEl.textContent = '';
                     return;
                 }
                 messageEl.textContent = message;
                 messageEl.style.background = isError ? '#ff5c5c' : 'rgba(15, 23, 42, 0.9)';
                 messageEl.classList.add('visible');
-                clearTimeout(showMessage.timeoutId);
-                showMessage.timeoutId = setTimeout(() => messageEl.classList.remove('visible'), 2500);
+                if (showMessage.timeoutId) {
+                    clearTimeout(showMessage.timeoutId);
+                    showMessage.timeoutId = null;
+                }
+                if (!persist) {
+                    showMessage.timeoutId = setTimeout(() => {
+                        messageEl.classList.remove('visible');
+                        showMessage.timeoutId = null;
+                    }, 2500);
+                }
             }
         });
     </script>

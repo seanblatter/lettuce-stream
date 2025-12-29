@@ -92,7 +92,8 @@
     const folder = options.kind === 'recording' ? STORAGE_FOLDERS.recording : STORAGE_FOLDERS.upload;
     const storagePath = `${STORAGE_ROOT}/${userId}/${folder}/${assetId}_${fileName}`;
     const storageRef = firebaseStorage.ref(storagePath);
-    await storageRef.put(payload, { contentType });
+    const uploadTask = storageRef.put(payload, { contentType });
+    await waitForUpload(uploadTask, options.onProgress);
     const downloadURL = await storageRef.getDownloadURL();
 
     const assetDoc = {
@@ -150,6 +151,20 @@
         storageUsageBytes: FieldValue.increment(-sizeBytes)
       }, { merge: true })
     ]);
+  }
+
+  function waitForUpload(task, onProgress) {
+    return new Promise((resolve, reject) => {
+      task.on('state_changed', (snapshot) => {
+        if (typeof onProgress === 'function') {
+          try {
+            onProgress(snapshot.bytesTransferred, snapshot.totalBytes);
+          } catch (error) {
+            console.warn('[storage-helpers] progress callback failed', error);
+          }
+        }
+      }, reject, () => resolve(task.snapshot));
+    });
   }
 
   function normalizeAssetDoc(doc) {
