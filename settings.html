@@ -47,6 +47,14 @@
                     <p class="summary-value" id="settingsTimeZonePreview">—</p>
                 </div>
             </div>
+            <div class="clean-water-card" id="cleanWaterImpact" hidden>
+                <div class="clean-water-count" id="cleanWaterCount">0</div>
+                <div>
+                    <p class="clean-water-label">Clean water streams sponsored</p>
+                    <p class="clean-water-text" id="cleanWaterText">Upgrade to sponsor clean water access for creators around the world.</p>
+                    <a href="https://teamwater.org" target="_blank" rel="noopener">Learn about TeamWater.org</a>
+                </div>
+            </div>
         </section>
 
         <section class="settings-panel">
@@ -151,10 +159,10 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const PLAN_CATALOG = {
-                trial: { label: 'Trial', priceLabel: 'Free during preview' },
-                starter: { label: 'Starter', priceLabel: '$19 / month' },
-                pro: { label: 'Pro', priceLabel: '$29 / month' },
-                enterprise: { label: 'Enterprise', priceLabel: '$99 / month' }
+                trial: { label: 'Trial', priceLabel: 'Free during preview', cleanStreams: 0 },
+                starter: { label: 'Starter', priceLabel: '$9/mo or $108/yr', cleanStreams: 2 },
+                pro: { label: 'Pro', priceLabel: '$25/mo or $300/yr', cleanStreams: 4 },
+                enterprise: { label: 'Enterprise', priceLabel: '$85/mo or $1020/yr', cleanStreams: 5 }
             };
             const PAID_STATUS_KEYS = ['active', 'paid', 'upgraded', 'cancelling'];
             const PROFILE_CACHE_KEY = 'lettuce-user-cache';
@@ -176,6 +184,9 @@
             const timeZonePreviewEl = document.getElementById('settingsTimeZonePreview');
             const messageEl = document.getElementById('settingsMessage');
             const loadingOverlay = document.getElementById('settingsLoading');
+            const cleanWaterCard = document.getElementById('cleanWaterImpact');
+            const cleanWaterCountEl = document.getElementById('cleanWaterCount');
+            const cleanWaterTextEl = document.getElementById('cleanWaterText');
 
             let activeUser = null;
             let activeProfile = {};
@@ -346,6 +357,7 @@
                 timeZonePreviewEl.textContent = timeZoneValue;
                 setAvatarSelection(activeProfile.avatar || '');
                 updateAvatarPreview(fullName || email, selectedAvatar);
+                updateCleanWaterImpact({ hasPaidSubscription, planEntry });
             }
 
             function syncTimeZoneSelect(value) {
@@ -527,6 +539,25 @@
                     return Intl.DateTimeFormat().resolvedOptions().timeZone;
                 } catch (error) {
                     return 'UTC';
+                }
+            }
+
+            function updateCleanWaterImpact({ hasPaidSubscription, planEntry }) {
+                if (!cleanWaterCard) {
+                    return;
+                }
+                if (!hasPaidSubscription || !planEntry?.cleanStreams) {
+                    cleanWaterCard.hidden = true;
+                    return;
+                }
+                cleanWaterCard.hidden = false;
+                if (cleanWaterCountEl) {
+                    cleanWaterCountEl.textContent = planEntry.cleanStreams;
+                }
+                if (cleanWaterTextEl) {
+                    const count = planEntry.cleanStreams;
+                    const noun = count === 1 ? 'clean water stream' : 'clean water streams';
+                    cleanWaterTextEl.textContent = `Sponsoring ${count} ${noun} via TeamWater.org with your plan.`;
                 }
             }
         });

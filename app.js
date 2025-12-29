@@ -58,4 +58,74 @@ document.addEventListener('DOMContentLoaded', function() {
     if (plan) {
         sessionStorage.setItem('selectedPlan', plan);
     }
+
+    const pricingCards = document.querySelectorAll('[data-plan-card]');
+    const billingToggleButtons = document.querySelectorAll('[data-billing-option]');
+    if (pricingCards.length && billingToggleButtons.length) {
+        const PRICING_CONFIG = {
+            starter: { monthly: 9, yearly: 108, streams: 2 },
+            pro: { monthly: 25, yearly: 300, streams: 4 },
+            enterprise: { monthly: 85, yearly: 1020, streams: 5 }
+        };
+        let activeBillingMode = '';
+
+        billingToggleButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                const nextMode = button.dataset.billingOption;
+                if (nextMode) {
+                    setBillingMode(nextMode);
+                }
+            });
+        });
+
+        setBillingMode('monthly');
+
+        function setBillingMode(mode) {
+            if (!['monthly', 'yearly'].includes(mode) || mode === activeBillingMode) {
+                return;
+            }
+            activeBillingMode = mode;
+            billingToggleButtons.forEach((button) => {
+                const isActive = button.dataset.billingOption === mode;
+                button.classList.toggle('active', isActive);
+            });
+            pricingCards.forEach((card) => {
+                const planKey = card.dataset.planCard;
+                const planConfig = PRICING_CONFIG[planKey];
+                if (!planConfig) {
+                    return;
+                }
+                const priceAmountEl = card.querySelector('[data-price-amount]');
+                const pricePeriodEl = card.querySelector('[data-price-period]');
+                const noteEl = card.querySelector('[data-billing-note]');
+                const impactEl = card.querySelector('[data-impact-copy]');
+                if (priceAmountEl) {
+                    priceAmountEl.textContent = formatCurrency(planConfig[mode]);
+                }
+                if (pricePeriodEl) {
+                    pricePeriodEl.textContent = mode === 'monthly' ? '/month' : '/year';
+                }
+                if (noteEl) {
+                    const monthlyRate = formatCurrency(planConfig.monthly);
+                    noteEl.textContent = mode === 'monthly'
+                        ? 'Billed monthly, cancel anytime.'
+                        : `Billed annually (${monthlyRate}/mo equivalent).`;
+                }
+                if (impactEl) {
+                    impactEl.textContent = buildImpactCopy(planConfig.streams, mode);
+                }
+            });
+        }
+
+        function formatCurrency(value) {
+            const amount = Number(value || 0);
+            return `$${amount.toLocaleString('en-US')}`;
+        }
+
+        function buildImpactCopy(streams, billingMode) {
+            const noun = streams === 1 ? 'clean water stream' : 'clean water streams';
+            const duration = billingMode === 'yearly' ? '12 months' : '1 month';
+            return `Funds ${duration} of clean water for ${streams} ${noun} via TeamWater.org.`;
+        }
+    }
 });
