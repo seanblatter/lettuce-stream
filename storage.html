@@ -315,7 +315,6 @@
             const librarySize = document.getElementById('librarySize');
             const messageEl = document.getElementById('storageMessage');
             const storageApi = window.storageHelpers;
-            const MAX_FILE_SIZE_MB = 150;
             let activeUser = null;
             let library = [];
             let storageContext = null;
@@ -372,11 +371,15 @@
                 if (!files.length) {
                     return;
                 }
+                if (!storageContext) {
+                    await reloadLibrary();
+                }
+                const quotaBytes = storageContext?.quotaBytes ?? Infinity;
+                let remainingBytes = Math.max(0, quotaBytes - (storageContext?.usageBytes || 0));
                 let uploadedCount = 0;
                 for (const file of files) {
-                    const sizeMb = file.size / (1024 * 1024);
-                    if (sizeMb > MAX_FILE_SIZE_MB) {
-                        showMessage(`${file.name} is larger than ${MAX_FILE_SIZE_MB} MB.`, true);
+                    if (file.size > remainingBytes) {
+                        showMessage(`${file.name} exceeds your remaining storage. Delete files or upgrade to continue.`, true);
                         continue;
                     }
                     try {
@@ -385,6 +388,7 @@
                             title: file.name
                         });
                         uploadedCount += 1;
+                        remainingBytes -= file.size;
                     } catch (error) {
                         if (error?.code === 'STORAGE_QUOTA_EXCEEDED') {
                             showMessage('Storage limit reached. Delete files or upgrade to continue.', true);
