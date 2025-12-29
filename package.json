@@ -22,8 +22,11 @@
   },
   "homepage": "https://github.com/seanblatter/lettuce-stream#readme",
   "dependencies": {
+    "ffmpeg-static": "^5.2.0",
     "firebase-admin": "^11.11.1",
+    "googleapis": "^133.0.0",
     "node-fetch": "^2.6.12",
-    "stripe": "^20.1.0"
+    "stripe": "^20.1.0",
+    "ws": "^8.16.0"
   }
 }

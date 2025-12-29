@@ -178,6 +178,9 @@
             letter-spacing: 0.08em;
             color: var(--studio-muted);
         }
+        .studio-muted {
+            color: var(--studio-muted);
+        }
         .destination-card {
             background: rgba(15, 23, 42, 0.03);
             border: 1px solid var(--studio-border);
@@ -192,6 +195,44 @@
         .destination-card span {
             color: var(--studio-muted);
             font-size: 0.85rem;
+        }
+        .destination-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+        }
+        .destination-card.connected {
+            border-color: var(--studio-accent);
+            background: rgba(245, 213, 71, 0.15);
+        }
+        .destination-card strong {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .destination-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 10px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            background: var(--studio-pill-bg);
+            border: 1px solid var(--studio-border);
+        }
+        .destination-card.connected .destination-pill {
+            border-color: rgba(76, 175, 80, 0.6);
+            background: rgba(76, 175, 80, 0.15);
+            color: #1a7f37;
+        }
+        .destination-empty {
+            border: 1px dashed var(--studio-border);
+            border-radius: 16px;
+            padding: 18px;
+            text-align: center;
+            color: var(--studio-muted);
+            font-size: 0.9rem;
         }
         .studio-stage {
             position: relative;
@@ -304,6 +345,9 @@
             height: 8px;
             border-radius: 50%;
             background: #4ade80;
+        }
+        .status-pill[data-state="live"]::before {
+            background: #ef4444;
         }
         .studio-right .tool-stack {
             display: flex;
@@ -482,17 +526,10 @@
                     <p class="studio-muted">Route your feed anywhere.</p>
                 </div>
                 <button class="add-scene-btn" id="sidebarAddChannel">Add destination</button>
-                <div class="destination-card">
-                    <div>YouTube <span>Offline</span></div>
-                    <span>1080p</span>
-                </div>
-                <div class="destination-card">
-                    <div>Twitch <span>Offline</span></div>
-                    <span>1080p</span>
-                </div>
-                <div class="destination-card">
-                    <div>Kick <span>Offline</span></div>
-                    <span>720p</span>
+                <div id="destinationList" class="destination-list"></div>
+                <div class="destination-empty" id="destinationEmptyState">
+                    <p>No destinations linked yet.</p>
+                    <small>Connect YouTube or Twitch from the dashboard to unlock multistreaming.</small>
                 </div>
             </aside>
 
@@ -563,50 +600,102 @@
     <script src="storage-helpers.js"></script>
     <script>
         (function () {
+            const DESTINATION_LIBRARY = {
+                youtube: { label: 'YouTube', resolution: '1080p', supportsRelay: true },
+                twitch: { label: 'Twitch', resolution: '1080p', supportsRelay: false },
+                kick: { label: 'Kick', resolution: '720p', supportsRelay: false }
+            };
+            const STREAMABLE_DESTINATIONS = ['youtube'];
             const PAID_STATUS_KEYS = ['active', 'paid', 'upgraded', 'cancelling'];
             const THEME_STORAGE_KEY = 'lettuce-dashboard-theme';
             const params = new URLSearchParams(window.location.search);
-            const streamTitleDisplay = document.getElementById('studioStreamNameDisplay');
-            const streamModeEl = document.getElementById('studioModeLabel');
-            const recordToggle = document.getElementById('recordToggle');
-            const recordToggleLabel = document.getElementById('recordToggleLabel');
-            const goLiveButton = document.getElementById('goLiveButton');
-            const toastEl = document.getElementById('studioToast');
-            const fallbackEl = document.getElementById('cameraFallback');
-            const videoEl = document.getElementById('studioFeed');
-            const themeToggle = document.getElementById('studioThemeToggle');
-            const shell = document.getElementById('studioShell');
-            const upgradeButton = document.getElementById('studioUpgradeButton');
-            const watermarkContainer = document.getElementById('studioWatermark');
-            const watermarkTextEl = document.getElementById('watermarkText');
-            const watermarkRemoveButton = document.getElementById('watermarkRemove');
-            const watermarkRestoreButton = document.getElementById('restoreWatermarkButton');
+
+            const dom = {
+                streamTitle: document.getElementById('studioStreamNameDisplay'),
+                streamMode: document.getElementById('studioModeLabel'),
+                recordToggle: document.getElementById('recordToggle'),
+                recordToggleLabel: document.getElementById('recordToggleLabel'),
+                goLiveButton: document.getElementById('goLiveButton'),
+                toast: document.getElementById('studioToast'),
+                fallback: document.getElementById('cameraFallback'),
+                video: document.getElementById('studioFeed'),
+                themeToggle: document.getElementById('studioThemeToggle'),
+                shell: document.getElementById('studioShell'),
+                upgradeButton: document.getElementById('studioUpgradeButton'),
+                watermarkContainer: document.getElementById('studioWatermark'),
+                watermarkText: document.getElementById('watermarkText'),
+                watermarkRemove: document.getElementById('watermarkRemove'),
+                watermarkRestore: document.getElementById('restoreWatermarkButton'),
+                destinationList: document.getElementById('destinationList'),
+                destinationEmpty: document.getElementById('destinationEmptyState'),
+                statusPill: document.getElementById('previewStatus')
+            };
+
             const storageApi = window.storageHelpers || null;
             const bodyEl = document.body;
-            let cameraStream = null;
-            let mediaRecorder = null;
-            let recordedChunks = [];
-            let recordingStartedAt = null;
-            let isLive = false;
-            let isRecording = false;
-            let activeUser = null;
-            let currentTitle = '';
-            let watermarkTextValue = 'Lettuce Stream';
 
-            const sessionTitle = params.get('title') ? decodeURIComponent(params.get('title')) : 'Untitled session';
-            const modeParam = params.get('mode') === 'record' ? 'Record session' : 'Live preview';
-            streamModeEl.textContent = modeParam;
-            setStreamTitle(sessionTitle);
-            initTitleEditing();
-            initTheme();
-            initWatermarkControls();
+            const state = {
+                activeUser: null,
+                cameraStream: null,
+                recorder: null,
+                recordedChunks: [],
+                recordingStartedAt: null,
+                isRecording: false,
+                isLive: false,
+                liveRecorder: null,
+                relaySocket: null,
+                youtubeSession: null,
+                liveChunkCount: 0,
+                liveActionInFlight: false,
+                runtimeConfig: {},
+                runtimeConfigPromise: null,
+                destinations: {},
+                profileUnsubscribe: null,
+                cameraInitialized: false,
+                currentTitle: '',
+                watermarkText: 'Lettuce Stream'
+            };
+
+            bootstrap();
+
+            async function bootstrap() {
+                const sessionTitle = params.get('title') ? decodeURIComponent(params.get('title')) : 'Untitled session';
+                const modeParam = params.get('mode') === 'record' ? 'Record session' : 'Live preview';
+                if (dom.streamMode) {
+                    dom.streamMode.textContent = modeParam;
+                }
+                setStreamTitle(sessionTitle);
+                initTitleEditing();
+                initTheme();
+                initWatermarkControls();
+                wireButtons();
+                await fetchRuntimeConfig();
+                guardPaidUser();
+            }
 
             function showToast(message) {
-                if (!toastEl) return;
-                toastEl.textContent = message;
-                toastEl.classList.add('visible');
+                if (!dom.toast) return;
+                dom.toast.textContent = message;
+                dom.toast.classList.add('visible');
                 clearTimeout(showToast.timeoutId);
-                showToast.timeoutId = setTimeout(() => toastEl.classList.remove('visible'), 2600);
+                showToast.timeoutId = setTimeout(() => dom.toast.classList.remove('visible'), 2600);
+            }
+
+            async function fetchRuntimeConfig() {
+                if (state.runtimeConfigPromise) {
+                    return state.runtimeConfigPromise;
+                }
+                state.runtimeConfigPromise = fetch('/api/runtime-config', { cache: 'no-store' })
+                    .then((res) => (res.ok ? res.json() : {}))
+                    .then((data) => {
+                        state.runtimeConfig = data || {};
+                        return state.runtimeConfig;
+                    })
+                    .catch(() => {
+                        state.runtimeConfig = {};
+                        return state.runtimeConfig;
+                    });
+                return state.runtimeConfigPromise;
             }
 
             function guardPaidUser() {
@@ -616,22 +705,27 @@
                 }
                 auth.onAuthStateChanged(async (user) => {
                     if (!user) {
+                        detachProfileListener();
                         window.location.href = 'signin.html?next=studio';
                         return;
                     }
+                    state.activeUser = user;
                     try {
                         const doc = await db.collection('users').doc(user.uid).get();
                         const status = (doc.exists ? doc.data().status : 'trial') || 'trial';
-                        const isPaidUser = PAID_STATUS_KEYS.includes(String(status).toLowerCase());
-                        activeUser = user;
-                        if (upgradeButton) {
-                            upgradeButton.hidden = isPaidUser;
+                        const isPaid = PAID_STATUS_KEYS.includes(String(status).toLowerCase());
+                        if (dom.upgradeButton) {
+                            dom.upgradeButton.hidden = isPaid;
                         }
-                        if (!isPaidUser) {
+                        if (!isPaid) {
                             window.location.href = 'billing.html';
                             return;
                         }
-                        initCamera();
+                        subscribeToProfile(user.uid);
+                        if (!state.cameraInitialized) {
+                            state.cameraInitialized = true;
+                            initCamera();
+                        }
                     } catch (error) {
                         console.error('Unable to hydrate studio:', error);
                         showToast('Unable to load your workspace. Try refreshing.');
@@ -639,24 +733,389 @@
                 });
             }
 
-            async function initCamera() {
-                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    fallbackEl.textContent = 'Your browser does not support live preview. Try Chrome or Edge.';
-                    return;
-                }
-                try {
-                    cameraStream = await navigator.mediaDevices.getUserMedia({ video: { width: 1920, height: 1080 }, audio: true });
-                    videoEl.srcObject = cameraStream;
-                    fallbackEl.style.display = 'none';
-                    showToast('Camera preview ready.');
-                } catch (error) {
-                    console.warn('Camera access denied:', error);
-                    fallbackEl.textContent = 'We could not access your camera. Check permissions and reload.';
+            function subscribeToProfile(uid) {
+                detachProfileListener();
+                state.profileUnsubscribe = db.collection('users').doc(uid).onSnapshot((snapshot) => {
+                    const data = snapshot.data() || {};
+                    state.destinations = data.channelConnections || {};
+                    renderDestinations();
+                    evaluateLiveAvailability();
+                }, (error) => {
+                    console.warn('Profile listener error:', error);
+                });
+            }
+
+            function detachProfileListener() {
+                if (state.profileUnsubscribe) {
+                    state.profileUnsubscribe();
+                    state.profileUnsubscribe = null;
                 }
             }
 
+            async function initCamera() {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    if (dom.fallback) {
+                        dom.fallback.textContent = 'Your browser does not support live preview. Try Chrome or Edge.';
+                    }
+                    return;
+                }
+                try {
+                    state.cameraStream = await navigator.mediaDevices.getUserMedia({ video: { width: 1920, height: 1080 }, audio: true });
+                    if (dom.video) {
+                        dom.video.srcObject = state.cameraStream;
+                    }
+                    if (dom.fallback) {
+                        dom.fallback.style.display = 'none';
+                    }
+                    showToast('Camera preview ready.');
+                    evaluateLiveAvailability();
+                } catch (error) {
+                    console.warn('Camera access denied:', error);
+                    if (dom.fallback) {
+                        dom.fallback.textContent = 'We could not access your camera. Check permissions and reload.';
+                    }
+                }
+            }
+
+            function renderDestinations() {
+                if (!dom.destinationList) {
+                    return;
+                }
+                dom.destinationList.innerHTML = '';
+                let connected = 0;
+                Object.keys(DESTINATION_LIBRARY).forEach((key) => {
+                    const definition = DESTINATION_LIBRARY[key];
+                    const info = state.destinations[key];
+                    const card = document.createElement('div');
+                    card.className = 'destination-card';
+                    if (info) {
+                        card.classList.add('connected');
+                        connected += 1;
+                    }
+
+                    const left = document.createElement('div');
+                    const title = document.createElement('strong');
+                    title.textContent = definition.label;
+                    if (info?.title) {
+                        const pill = document.createElement('span');
+                        pill.className = 'destination-pill';
+                        pill.textContent = info.title;
+                        title.appendChild(pill);
+                    }
+                    const status = document.createElement('span');
+                    status.textContent = info ? 'Connected' : 'Offline';
+                    left.appendChild(title);
+                    left.appendChild(status);
+
+                    const resolution = document.createElement('span');
+                    resolution.textContent = info?.resolution || definition.resolution;
+
+                    card.appendChild(left);
+                    card.appendChild(resolution);
+                    dom.destinationList.appendChild(card);
+                });
+
+                if (dom.destinationEmpty) {
+                    dom.destinationEmpty.hidden = connected > 0;
+                }
+
+                const available = STREAMABLE_DESTINATIONS.some((key) => Boolean(state.destinations[key]));
+                if (!available && dom.statusPill) {
+                    dom.statusPill.textContent = 'Preview mode · No destinations linked';
+                    dom.statusPill.dataset.state = 'preview';
+                }
+            }
+
+            function evaluateLiveAvailability() {
+                if (!dom.goLiveButton) {
+                    return;
+                }
+                if (state.isLive) {
+                    dom.goLiveButton.disabled = false;
+                    return;
+                }
+                const hasDestination = STREAMABLE_DESTINATIONS.some((key) => Boolean(state.destinations[key]));
+                const hasRelay = Boolean(state.runtimeConfig?.relayUrl);
+                const ready = Boolean(state.cameraStream) && hasDestination && hasRelay;
+                dom.goLiveButton.disabled = !ready || state.liveActionInFlight;
+                if (!ready) {
+                    const reasons = [];
+                    if (!state.cameraStream) {
+                        reasons.push('allow camera access');
+                    }
+                    if (!hasDestination) {
+                        reasons.push('connect YouTube');
+                    }
+                    if (!hasRelay) {
+                        reasons.push('set STREAM_RELAY_URL');
+                    }
+                    dom.goLiveButton.title = `Cannot go live yet: ${reasons.join(', ')}.`;
+                } else {
+                    dom.goLiveButton.title = '';
+                }
+            }
+
+            async function toggleGoLive() {
+                if (state.liveActionInFlight) {
+                    return;
+                }
+                if (state.isLive) {
+                    await stopLiveStream();
+                } else {
+                    await startLiveStream();
+                }
+            }
+
+            async function startLiveStream() {
+                if (!state.activeUser) {
+                    showToast('Sign in again to go live.');
+                    return;
+                }
+                if (!state.cameraStream) {
+                    showToast('Camera feed is not ready yet.');
+                    return;
+                }
+                if (!state.destinations.youtube) {
+                    showToast('Connect your YouTube channel in the dashboard to go live.');
+                    return;
+                }
+                await fetchRuntimeConfig();
+                if (!state.runtimeConfig.relayUrl) {
+                    showToast('Streaming relay missing. Set STREAM_RELAY_URL in Vercel.');
+                    return;
+                }
+
+                state.liveActionInFlight = true;
+                updateLiveButtonBusy(true, 'Connecting…');
+                try {
+                    const idToken = await state.activeUser.getIdToken(true);
+                    const response = await fetch('/api/youtube/start-broadcast', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ idToken, title: state.currentTitle })
+                    });
+                    const payload = await response.json();
+                    if (!response.ok) {
+                        throw new Error(payload?.error || 'Unable to start YouTube broadcast.');
+                    }
+
+                    state.youtubeSession = {
+                        broadcastId: payload.broadcastId,
+                        streamId: payload.streamId,
+                        ingestionAddress: payload.ingestionAddress,
+                        streamKey: payload.streamKey || payload.streamName || ''
+                    };
+
+                    await connectRelay(state.youtubeSession.ingestionAddress, state.youtubeSession.streamKey);
+                    await startLiveRecorder();
+
+                    state.isLive = true;
+                    state.liveChunkCount = 0;
+                    updateGoLiveButton();
+                    setStatusPill('Warming up stream…', true);
+                    showToast('YouTube stream warming up.');
+                } catch (error) {
+                    console.error('Unable to start live stream:', error);
+                    showToast(error?.message || 'Unable to start stream.');
+                    cleanupLiveSession();
+                } finally {
+                    state.liveActionInFlight = false;
+                    updateLiveButtonBusy(false);
+                    evaluateLiveAvailability();
+                }
+            }
+
+            async function stopLiveStream() {
+                state.liveActionInFlight = true;
+                updateLiveButtonBusy(true, 'Ending…');
+                try {
+                    if (state.liveRecorder && state.liveRecorder.state !== 'inactive') {
+                        state.liveRecorder.stop();
+                    }
+                    if (state.relaySocket && state.relaySocket.readyState === WebSocket.OPEN) {
+                        state.relaySocket.send(JSON.stringify({ type: 'stop' }));
+                        state.relaySocket.close();
+                    }
+                    await transitionBroadcast('complete');
+                    showToast('Stream ended.');
+                } catch (error) {
+                    console.warn('Unable to stop live stream cleanly:', error);
+                } finally {
+                    cleanupLiveSession();
+                    state.liveActionInFlight = false;
+                    updateLiveButtonBusy(false);
+                    evaluateLiveAvailability();
+                }
+            }
+
+            function connectRelay(ingestionAddress, streamKey) {
+                return new Promise((resolve, reject) => {
+                    const relayUrl = state.runtimeConfig.relayUrl;
+                    if (!relayUrl) {
+                        reject(new Error('Relay URL missing.'));
+                        return;
+                    }
+                    state.relaySocket = new WebSocket(relayUrl);
+                    state.relaySocket.binaryType = 'arraybuffer';
+
+                    const ingestPayload = {
+                        type: 'start',
+                        ingest: {
+                            url: ingestionAddress,
+                            streamKey
+                        }
+                    };
+
+                    const timeout = setTimeout(() => {
+                        reject(new Error('Relay connection timed out.'));
+                    }, 10000);
+
+                    state.relaySocket.addEventListener('open', () => {
+                        clearTimeout(timeout);
+                        state.relaySocket.send(JSON.stringify(ingestPayload));
+                        resolve();
+                    });
+
+                    state.relaySocket.addEventListener('error', (event) => {
+                        clearTimeout(timeout);
+                        reject(new Error('Relay connection failed.'));
+                    });
+
+                    state.relaySocket.addEventListener('close', () => {
+                        if (state.isLive) {
+                            showToast('Relay closed. Ending stream.');
+                            cleanupLiveSession();
+                        }
+                    });
+                });
+            }
+
+            function startLiveRecorder() {
+                return new Promise((resolve, reject) => {
+                    if (typeof MediaRecorder === 'undefined') {
+                        reject(new Error('MediaRecorder is not supported in this browser.'));
+                        return;
+                    }
+                    try {
+                        const mimeType = chooseLiveMime();
+                        state.liveRecorder = mimeType ? new MediaRecorder(state.cameraStream, { mimeType }) : new MediaRecorder(state.cameraStream);
+                    } catch (error) {
+                        reject(new Error('Unable to initialize live recorder.'));
+                        return;
+                    }
+
+                    state.liveRecorder.ondataavailable = async (event) => {
+                        if (!event.data || event.data.size === 0) {
+                            return;
+                        }
+                        if (state.relaySocket && state.relaySocket.readyState === WebSocket.OPEN) {
+                            state.liveChunkCount += 1;
+                            if (state.liveChunkCount === 4) {
+                                transitionBroadcast('live');
+                                setStatusPill('Live on YouTube • Stream health good', true);
+                            }
+                            try {
+                                const buffer = await event.data.arrayBuffer();
+                                state.relaySocket.send(buffer);
+                            } catch (error) {
+                                console.warn('Unable to send live chunk:', error);
+                            }
+                        }
+                    };
+
+                    state.liveRecorder.onstop = () => {
+                        if (state.isLive) {
+                            cleanupLiveSession();
+                        }
+                    };
+
+                    state.liveRecorder.start(1000);
+                    resolve();
+                });
+            }
+
+            async function transitionBroadcast(nextStatus) {
+                if (!state.youtubeSession || !state.activeUser) {
+                    return;
+                }
+                try {
+                    const idToken = await state.activeUser.getIdToken(true);
+                    await fetch('/api/youtube/transition-broadcast', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ idToken, broadcastId: state.youtubeSession.broadcastId, status: nextStatus })
+                    });
+                } catch (error) {
+                    console.warn('Unable to update broadcast lifecycle:', error);
+                }
+            }
+
+            function cleanupLiveSession() {
+                state.isLive = false;
+                state.youtubeSession = null;
+                state.liveChunkCount = 0;
+                if (state.liveRecorder) {
+                    try {
+                        if (state.liveRecorder.state !== 'inactive') {
+                            state.liveRecorder.stop();
+                        }
+                    } catch (error) {
+                        /* no-op */
+                    }
+                    state.liveRecorder = null;
+                }
+                if (state.relaySocket && state.relaySocket.readyState === WebSocket.OPEN) {
+                    state.relaySocket.close();
+                }
+                state.relaySocket = null;
+                setStatusPill('Preview mode active', false);
+                updateGoLiveButton();
+            }
+
+            function updateGoLiveButton() {
+                if (!dom.goLiveButton) {
+                    return;
+                }
+                dom.goLiveButton.textContent = state.isLive ? 'End stream' : 'Go live';
+                dom.goLiveButton.classList.toggle('secondary', state.isLive);
+                dom.goLiveButton.classList.toggle('primary', !state.isLive);
+            }
+
+            function updateLiveButtonBusy(isBusy, label) {
+                if (!dom.goLiveButton) {
+                    return;
+                }
+                dom.goLiveButton.dataset.busy = String(Boolean(isBusy));
+                if (isBusy && label) {
+                    dom.goLiveButton.textContent = label;
+                } else if (!isBusy) {
+                    updateGoLiveButton();
+                }
+            }
+
+            function chooseLiveMime() {
+                const candidates = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
+                if (typeof MediaRecorder === 'undefined' || typeof MediaRecorder.isTypeSupported !== 'function') {
+                    return '';
+                }
+                for (const type of candidates) {
+                    if (MediaRecorder.isTypeSupported(type)) {
+                        return type;
+                    }
+                }
+                return '';
+            }
+
+            function setStatusPill(text, live) {
+                if (!dom.statusPill) {
+                    return;
+                }
+                dom.statusPill.textContent = text;
+                dom.statusPill.dataset.state = live ? 'live' : 'preview';
+            }
+
             function toggleRecording() {
-                if (!cameraStream) {
+                if (!state.cameraStream) {
                     showToast('Camera feed is not ready yet.');
                     return;
                 }
@@ -664,7 +1123,7 @@
                     showToast('Recording is not supported in this browser.');
                     return;
                 }
-                if (isRecording) {
+                if (state.isRecording) {
                     stopRecording({ reason: 'Recording stopped' });
                 } else {
                     startRecording();
@@ -673,12 +1132,12 @@
 
             function startRecording() {
                 try {
-                    recordedChunks = [];
-                    mediaRecorder = new MediaRecorder(cameraStream, { mimeType: 'video/webm;codecs=vp9,opus' });
+                    state.recordedChunks = [];
+                    state.recorder = new MediaRecorder(state.cameraStream, { mimeType: 'video/webm;codecs=vp9,opus' });
                 } catch (error) {
-                    console.warn('Unable to initialize recorder, falling back to default codec.', error);
+                    console.warn('Unable to initialize recorder with vp9, falling back.', error);
                     try {
-                        mediaRecorder = new MediaRecorder(cameraStream);
+                        state.recorder = new MediaRecorder(state.cameraStream);
                     } catch (fallbackError) {
                         console.error('Recording unavailable:', fallbackError);
                         showToast('Recording failed to start.');
@@ -686,57 +1145,51 @@
                     }
                 }
 
-                mediaRecorder.ondataavailable = (event) => {
+                state.recorder.ondataavailable = (event) => {
                     if (event.data && event.data.size > 0) {
-                        recordedChunks.push(event.data);
+                        state.recordedChunks.push(event.data);
                     }
                 };
-                mediaRecorder.onstop = finalizeRecording;
-                mediaRecorder.start();
-                recordingStartedAt = Date.now();
+                state.recorder.onstop = finalizeRecording;
+                state.recorder.start();
+                state.recordingStartedAt = Date.now();
                 setRecordingState(true);
                 showToast('Recording started.');
             }
 
             function stopRecording({ reason } = {}) {
-                if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+                if (!state.recorder || state.recorder.state === 'inactive') {
                     return;
                 }
                 showToast(reason ? `${reason}. Finalizing…` : 'Finalizing recording…');
-                mediaRecorder.stop();
+                state.recorder.stop();
             }
 
             async function finalizeRecording() {
                 setRecordingState(false);
-                if (!recordedChunks.length) {
+                if (!state.recordedChunks.length) {
                     showToast('Recording ended, but no video was captured.');
                     return;
                 }
-                const recordingDuration = recordingStartedAt ? Math.max(Date.now() - recordingStartedAt, 0) : 0;
-                const blob = new Blob(recordedChunks, { type: mediaRecorder?.mimeType || 'video/webm' });
-                const safeName = formatFileName(currentTitle);
+                const duration = state.recordingStartedAt ? Math.max(Date.now() - state.recordingStartedAt, 0) : 0;
+                const mimeType = state.recorder?.mimeType || 'video/webm';
+                const blob = new Blob(state.recordedChunks, { type: mimeType });
+                const safeName = formatFileName(state.currentTitle);
                 downloadRecordingBlob(blob, `${safeName}-${Date.now()}.webm`);
-                await persistRecordingAsset(blob, { durationMs: recordingDuration, title: currentTitle });
-                recordedChunks = [];
-                mediaRecorder = null;
+                await persistRecordingAsset(blob, { durationMs: duration, title: state.currentTitle });
+                state.recordedChunks = [];
+                state.recorder = null;
             }
 
             function setRecordingState(active) {
-                isRecording = Boolean(active);
-                recordToggle.dataset.recording = String(isRecording);
-                recordToggle.setAttribute('aria-pressed', String(isRecording));
-                recordToggleLabel.textContent = isRecording ? 'Recording…' : 'Record standby';
-            }
-
-            function toggleGoLive() {
-                isLive = !isLive;
-                goLiveButton.textContent = isLive ? 'End stream' : 'Go live';
-                goLiveButton.classList.toggle('secondary', isLive);
-                goLiveButton.classList.toggle('primary', !isLive);
-                if (!isLive && isRecording) {
-                    stopRecording({ reason: 'Stream ended' });
+                state.isRecording = Boolean(active);
+                if (dom.recordToggle) {
+                    dom.recordToggle.dataset.recording = String(state.isRecording);
+                    dom.recordToggle.setAttribute('aria-pressed', String(state.isRecording));
                 }
-                showToast(isLive ? 'You are live across all destinations.' : 'Stream ended.');
+                if (dom.recordToggleLabel) {
+                    dom.recordToggleLabel.textContent = state.isRecording ? 'Recording…' : 'Record standby';
+                }
             }
 
             function toggleTheme() {
@@ -746,11 +1199,11 @@
 
             function applyTheme(nextTheme) {
                 bodyEl.dataset.theme = nextTheme;
-                if (shell) {
-                    shell.dataset.theme = nextTheme;
+                if (dom.shell) {
+                    dom.shell.dataset.theme = nextTheme;
                 }
-                if (themeToggle) {
-                    themeToggle.textContent = nextTheme === 'dark' ? 'Light mode' : 'Dark mode';
+                if (dom.themeToggle) {
+                    dom.themeToggle.textContent = nextTheme === 'dark' ? 'Light mode' : 'Dark mode';
                 }
                 try {
                     localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
@@ -770,11 +1223,11 @@
             }
 
             function initTitleEditing() {
-                if (!streamTitleDisplay) {
+                if (!dom.streamTitle) {
                     return;
                 }
-                streamTitleDisplay.addEventListener('click', beginTitleEdit);
-                streamTitleDisplay.addEventListener('keydown', (event) => {
+                dom.streamTitle.addEventListener('click', beginTitleEdit);
+                dom.streamTitle.addEventListener('keydown', (event) => {
                     if (event.key === 'Enter') {
                         event.preventDefault();
                         commitTitleEdit();
@@ -783,52 +1236,52 @@
                         commitTitleEdit({ revert: true });
                     }
                 });
-                streamTitleDisplay.addEventListener('blur', () => {
-                    if (streamTitleDisplay.dataset.editing === 'true') {
+                dom.streamTitle.addEventListener('blur', () => {
+                    if (dom.streamTitle.dataset.editing === 'true') {
                         commitTitleEdit();
                     }
                 });
             }
 
             function beginTitleEdit() {
-                if (!streamTitleDisplay || streamTitleDisplay.dataset.editing === 'true') {
+                if (!dom.streamTitle || dom.streamTitle.dataset.editing === 'true') {
                     return;
                 }
-                streamTitleDisplay.dataset.editing = 'true';
-                streamTitleDisplay.setAttribute('contenteditable', 'true');
-                streamTitleDisplay.focus();
+                dom.streamTitle.dataset.editing = 'true';
+                dom.streamTitle.setAttribute('contenteditable', 'true');
+                dom.streamTitle.focus();
                 const range = document.createRange();
-                range.selectNodeContents(streamTitleDisplay);
+                range.selectNodeContents(dom.streamTitle);
                 const selection = window.getSelection();
                 selection.removeAllRanges();
                 selection.addRange(range);
             }
 
             function commitTitleEdit({ revert = false } = {}) {
-                if (!streamTitleDisplay) {
+                if (!dom.streamTitle) {
                     return;
                 }
-                const nextValue = revert ? currentTitle : (streamTitleDisplay.textContent || '').trim() || 'Untitled session';
+                const nextValue = revert ? state.currentTitle : (dom.streamTitle.textContent || '').trim() || 'Untitled session';
                 setStreamTitle(nextValue);
-                streamTitleDisplay.dataset.editing = 'false';
-                streamTitleDisplay.removeAttribute('contenteditable');
+                dom.streamTitle.dataset.editing = 'false';
+                dom.streamTitle.removeAttribute('contenteditable');
             }
 
             function setStreamTitle(value) {
-                currentTitle = value;
-                if (streamTitleDisplay) {
-                    streamTitleDisplay.textContent = value;
+                state.currentTitle = value;
+                if (dom.streamTitle) {
+                    dom.streamTitle.textContent = value;
                 }
                 document.title = `${value} · Lettuce Stream Studio`;
             }
 
             function initWatermarkControls() {
-                if (!watermarkTextEl) {
+                if (!dom.watermarkText) {
                     return;
                 }
-                setWatermarkText(watermarkTextValue);
-                watermarkTextEl.addEventListener('click', beginWatermarkEdit);
-                watermarkTextEl.addEventListener('keydown', (event) => {
+                setWatermarkText(state.watermarkText);
+                dom.watermarkText.addEventListener('click', beginWatermarkEdit);
+                dom.watermarkText.addEventListener('keydown', (event) => {
                     if (event.key === 'Enter') {
                         event.preventDefault();
                         commitWatermarkEdit();
@@ -837,96 +1290,109 @@
                         commitWatermarkEdit({ revert: true });
                     }
                 });
-                watermarkTextEl.addEventListener('blur', () => {
-                    if (watermarkTextEl.dataset.editing === 'true') {
+                dom.watermarkText.addEventListener('blur', () => {
+                    if (dom.watermarkText.dataset.editing === 'true') {
                         commitWatermarkEdit();
                     }
                 });
-                if (watermarkRemoveButton) {
-                    watermarkRemoveButton.addEventListener('click', (event) => {
+                if (dom.watermarkRemove) {
+                    dom.watermarkRemove.addEventListener('click', (event) => {
                         event.stopPropagation();
                         removeWatermark();
                     });
                 }
-                if (watermarkRestoreButton) {
-                    watermarkRestoreButton.addEventListener('click', restoreWatermark);
+                if (dom.watermarkRestore) {
+                    dom.watermarkRestore.addEventListener('click', restoreWatermark);
                 }
             }
 
             function beginWatermarkEdit() {
-                if (!watermarkTextEl || watermarkTextEl.dataset.editing === 'true') {
+                if (!dom.watermarkText || dom.watermarkText.dataset.editing === 'true') {
                     return;
                 }
-                watermarkTextEl.dataset.editing = 'true';
-                watermarkTextEl.setAttribute('contenteditable', 'true');
-                watermarkTextEl.focus();
+                dom.watermarkText.dataset.editing = 'true';
+                dom.watermarkText.setAttribute('contenteditable', 'true');
+                dom.watermarkText.focus();
                 const range = document.createRange();
-                range.selectNodeContents(watermarkTextEl);
+                range.selectNodeContents(dom.watermarkText);
                 const selection = window.getSelection();
                 selection.removeAllRanges();
                 selection.addRange(range);
             }
 
             function commitWatermarkEdit({ revert = false } = {}) {
-                if (!watermarkTextEl) {
+                if (!dom.watermarkText) {
                     return;
                 }
-                const nextValue = revert ? watermarkTextValue : (watermarkTextEl.textContent || '').trim() || 'Lettuce Stream';
+                const nextValue = revert ? state.watermarkText : (dom.watermarkText.textContent || '').trim() || 'Lettuce Stream';
                 setWatermarkText(nextValue);
-                watermarkTextEl.dataset.editing = 'false';
-                watermarkTextEl.removeAttribute('contenteditable');
+                dom.watermarkText.dataset.editing = 'false';
+                dom.watermarkText.removeAttribute('contenteditable');
             }
 
             function setWatermarkText(value) {
-                watermarkTextValue = value;
-                if (watermarkTextEl) {
-                    watermarkTextEl.textContent = value;
+                state.watermarkText = value;
+                if (dom.watermarkText) {
+                    dom.watermarkText.textContent = value;
                 }
             }
 
             function removeWatermark() {
-                if (watermarkContainer) {
-                    watermarkContainer.setAttribute('data-hidden', 'true');
+                if (dom.watermarkContainer) {
+                    dom.watermarkContainer.setAttribute('data-hidden', 'true');
                 }
-                if (watermarkRestoreButton) {
-                    watermarkRestoreButton.hidden = false;
+                if (dom.watermarkRestore) {
+                    dom.watermarkRestore.hidden = false;
                 }
                 showToast('Watermark removed for this session.');
             }
 
             function restoreWatermark() {
-                if (watermarkContainer) {
-                    watermarkContainer.removeAttribute('data-hidden');
+                if (dom.watermarkContainer) {
+                    dom.watermarkContainer.removeAttribute('data-hidden');
                 }
-                if (watermarkRestoreButton) {
-                    watermarkRestoreButton.hidden = true;
+                if (dom.watermarkRestore) {
+                    dom.watermarkRestore.hidden = true;
                 }
                 showToast('Watermark restored.');
             }
 
             function wireButtons() {
-                document.getElementById('studioBack').addEventListener('click', () => {
-                    window.location.href = 'dashboard.html';
-                });
-                recordToggle.addEventListener('click', toggleRecording);
-                goLiveButton.addEventListener('click', toggleGoLive);
-                themeToggle.addEventListener('click', toggleTheme);
-                if (upgradeButton) {
-                    upgradeButton.addEventListener('click', () => window.location.href = 'checkout.html?plan=pro');
+                const backBtn = document.getElementById('studioBack');
+                if (backBtn) {
+                    backBtn.addEventListener('click', () => window.location.href = 'dashboard.html');
                 }
-                document.getElementById('topAddChannel').addEventListener('click', () => {
-                    window.open('dashboard.html#channels', '_blank');
-                    showToast('Channel picker opened in a new tab.');
+                if (dom.recordToggle) {
+                    dom.recordToggle.addEventListener('click', toggleRecording);
+                }
+                if (dom.goLiveButton) {
+                    dom.goLiveButton.addEventListener('click', toggleGoLive);
+                }
+                if (dom.themeToggle) {
+                    dom.themeToggle.addEventListener('click', toggleTheme);
+                }
+                if (dom.upgradeButton) {
+                    dom.upgradeButton.addEventListener('click', () => window.location.href = 'checkout.html?plan=pro');
+                }
+                const addChannelButtons = [document.getElementById('topAddChannel'), document.getElementById('sidebarAddChannel')];
+                addChannelButtons.forEach((btn) => {
+                    if (!btn) return;
+                    btn.addEventListener('click', () => {
+                        window.open('dashboard.html#channels', '_blank');
+                        showToast('Channel picker opened in a new tab.');
+                    });
                 });
-                document.getElementById('sidebarAddChannel').addEventListener('click', () => {
-                    window.open('dashboard.html#channels', '_blank');
-                    showToast('Channel picker opened in a new tab.');
-                });
-                document.getElementById('scheduleButton').addEventListener('click', () => {
-                    window.open('dashboard.html#scheduleLab', '_blank');
-                    showToast('Scheduler opened.');
-                });
-                document.getElementById('addSceneButton').addEventListener('click', () => showToast('Scene library coming soon.'));
+                const scheduleButton = document.getElementById('scheduleButton');
+                if (scheduleButton) {
+                    scheduleButton.addEventListener('click', () => {
+                        window.open('dashboard.html#scheduleLab', '_blank');
+                        showToast('Scheduler opened.');
+                    });
+                }
+                const addSceneButton = document.getElementById('addSceneButton');
+                if (addSceneButton) {
+                    addSceneButton.addEventListener('click', () => showToast('Scene library coming soon.'));
+                }
                 document.querySelectorAll('.tool-row').forEach((row) => {
                     row.addEventListener('click', () => {
                         const label = row.dataset.tool || 'Tool';
@@ -936,12 +1402,12 @@
             }
 
             async function persistRecordingAsset(blob, metadata = {}) {
-                if (!storageApi || !activeUser) {
+                if (!storageApi || !state.activeUser) {
                     return;
                 }
                 try {
                     const dataUrl = await blobToDataUrl(blob);
-                    storageApi.addAsset(activeUser.uid, {
+                    storageApi.addAsset(state.activeUser.uid, {
                         id: `rec_${Date.now()}`,
                         kind: 'recording',
                         title: metadata.title || 'Session recording',
@@ -981,16 +1447,16 @@
             }
 
             window.addEventListener('beforeunload', () => {
-                if (isRecording) {
+                if (state.isRecording) {
                     stopRecording({ reason: 'Window closing' });
                 }
-                if (cameraStream) {
-                    cameraStream.getTracks().forEach((track) => track.stop());
+                if (state.isLive) {
+                    cleanupLiveSession();
+                }
+                if (state.cameraStream) {
+                    state.cameraStream.getTracks().forEach((track) => track.stop());
                 }
             });
-
-            wireButtons();
-            guardPaidUser();
         })();
     </script>
 </body>

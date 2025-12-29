@@ -218,6 +218,26 @@ Lettuce Stream can link directly to YouTube and Twitch so your studio sessions r
 
 After deploying, update your Firestore security rules to deny access to the `channelSecrets` collection (the repo already includes this rule). OAuth tokens live there and are only readable via the server-side Admin SDK.
 
+### Live Relay & Streaming Pipeline
+
+Browser media APIs cannot push directly to YouTube’s RTMP ingest servers, so Lettuce Stream relies on a lightweight relay that converts your in-browser `MediaRecorder` chunks into an RTMP feed via `ffmpeg`.
+
+1. **Deploy the relay**
+  - `cd relay && npm install && node server.js`
+  - or host it on Render/Fly/Heroku; any Node host with outbound RTMP and `ffmpeg` support works.
+  - The relay uses WebSockets on `PORT` (default `8080`). Make sure the process can reach `rtmp(s)://a.rtmp.youtube.com`.
+2. **Expose the relay URL**
+  - Set `STREAM_RELAY_URL=wss://your-relay-host.example.com` in Vercel.
+  - Redeploy so `/api/runtime-config` surfaces the URL to the studio.
+3. **Grant YouTube access once**
+  - After a user completes OAuth, their refresh token is stored in Firestore’s locked `channelSecrets` collection.
+4. **Going live from the studio**
+  - Clicking Go Live now hits `/api/youtube/start-broadcast`, which creates a fresh broadcast + stream via the YouTube Live Streaming API and returns the RTMP ingest address.
+  - The browser opens a WebSocket to the relay, streams encoded chunks, and the relay pipes them to YouTube via `ffmpeg`.
+  - When the stream stabilizes, the app transitions the broadcast to the `live` lifecycle; ending the stream transitions it to `complete`.
+
+If the relay URL is missing or the YouTube connection is not linked, the Go Live control stays disabled and the UI explains what to fix.
+
 ## Customization 🎨
 
 ### Colors
