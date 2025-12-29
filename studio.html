@@ -1372,7 +1372,9 @@
                     dom.themeToggle.addEventListener('click', toggleTheme);
                 }
                 if (dom.upgradeButton) {
-                    dom.upgradeButton.addEventListener('click', () => window.location.href = 'checkout.html?plan=pro');
+                    dom.upgradeButton.addEventListener('click', () => {
+                        window.location.href = 'plans.html#billing';
+                    });
                 }
                 const addChannelButtons = [document.getElementById('topAddChannel'), document.getElementById('sidebarAddChannel')];
                 addChannelButtons.forEach((btn) => {

@@ -20,12 +20,7 @@ const signupForm = document.getElementById('signupForm');
 if (signupForm) {
     // Pre-select plan from URL parameter
     const urlParams = new URLSearchParams(window.location.search);
-    const planParam = urlParams.get('plan');
-    const planSelect = document.getElementById('plan');
-    
-    if (planParam && planSelect) {
-        planSelect.value = planParam;
-    }
+    const planParam = (urlParams.get('plan') || '').trim();
 
     signupForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -40,7 +35,6 @@ if (signupForm) {
         const fullName = document.getElementById('fullName').value;
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
-        const plan = document.getElementById('plan').value;
         const terms = document.getElementById('terms').checked;
         
         // Validate
@@ -49,10 +43,7 @@ if (signupForm) {
             return;
         }
         
-        if (!plan) {
-            showError(errorMessage, 'Please select a plan');
-            return;
-        }
+        const planSlug = planParam || 'trial';
         
         // Show loading state
         submitBtn.disabled = true;
@@ -75,7 +66,7 @@ if (signupForm) {
                 await db.collection('users').doc(user.uid).set({
                     fullName: fullName,
                     email: email,
-                    plan: plan,
+                    plan: planSlug,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days from now
                     status: 'trial'

@@ -641,11 +641,7 @@
         }
 
         function initiateUpgrade() {
-            if (typeof redirectToStripeCheckout === 'function' && dashboardState.userId) {
-                redirectToStripeCheckout(dashboardState.userId, 'pro');
-            } else {
-                window.location.href = 'signup.html?plan=pro';
-            }
+            window.location.href = 'plans.html#billing';
         }
 
         function toggleUpgradeCues() {

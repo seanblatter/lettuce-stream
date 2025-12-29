@@ -31,15 +31,16 @@
             <p>Stay on your trial while you evaluate, then pick the billing cadence that matches your production calendar.</p>
         </section>
 
-        <section class="plans-grid" id="billing">
+        <section class="plans-pricing" id="billing">
             <div class="plans-toggle-row">
-                <p class="plans-toggle-copy">Choose your billing cadence</p>
+                <p class="pricing-copy">Switch between monthly and yearly prices whenever you need.</p>
                 <div class="billing-toggle" role="group" aria-label="Select billing cadence">
                     <button type="button" class="toggle-option active" data-plans-billing="monthly">Monthly</button>
                     <button type="button" class="toggle-option" data-plans-billing="yearly">Yearly</button>
                 </div>
             </div>
-            <article class="plan-card" data-plan-card="starter">
+            <div class="plans-grid">
+                <article class="plan-card" data-plan-card="starter">
                 <h3>Starter</h3>
                 <p class="plan-description">For emerging creators learning multi-streaming fundamentals.</p>
                 <p class="plan-price"><span data-plan-amount>$9</span> <span data-plan-period>/month</span></p>
@@ -54,7 +55,7 @@
                 <button type="button" class="btn-outline plan-cta" data-plan-tier="starter">Choose Starter</button>
             </article>
 
-            <article class="plan-card featured" data-plan-card="pro">
+                <article class="plan-card featured" data-plan-card="pro">
                 <h3>Pro</h3>
                 <p class="plan-description">Best for growing channels that need automation and full-fidelity delivery.</p>
                 <p class="plan-price"><span data-plan-amount>$25</span> <span data-plan-period>/month</span></p>
@@ -69,7 +70,7 @@
                 <button type="button" class="btn-primary plan-cta" data-plan-tier="pro">Go Pro</button>
             </article>
 
-            <article class="plan-card" data-plan-card="enterprise">
+                <article class="plan-card" data-plan-card="enterprise">
                 <h3>Enterprise</h3>
                 <p class="plan-description">For studios and teams that need collaboration, compliance, and white-glove care.</p>
                 <p class="plan-price"><span data-plan-amount>$85</span> <span data-plan-period>/month</span></p>
@@ -82,7 +83,8 @@
                     <li>24/7 phone & chat support</li>
                 </ul>
                 <button type="button" class="btn-secondary plan-cta" data-plan-tier="enterprise">Choose Enterprise</button>
-            </article>
+                </article>
+            </div>
         </section>
 
         <section class="plans-table">
