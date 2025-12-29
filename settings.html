@@ -35,6 +35,7 @@
                     <h1 id="settingsDisplayName">Loading…</h1>
                     <p class="settings-plan" id="settingsPlanBadge">—</p>
                     <p class="settings-plan-price" id="settingsPlanPrice">—</p>
+                    <p class="settings-plan-countdown" id="settingsPlanCountdown" hidden></p>
                 </div>
             </div>
             <div class="settings-summary-grid">
@@ -155,22 +156,22 @@
                 starter: {
                     label: 'Starter',
                     pricing: {
-                        monthly: '$9 / month',
-                        yearly: '$108 / year'
+                        monthly: '$19.99 / month',
+                        yearly: '$239.88 / year'
                     }
                 },
                 pro: {
                     label: 'Pro',
                     pricing: {
-                        monthly: '$25 / month',
-                        yearly: '$300 / year'
+                        monthly: '$29.99 / month',
+                        yearly: '$359.88 / year'
                     }
                 },
                 enterprise: {
                     label: 'Enterprise',
                     pricing: {
-                        monthly: '$85 / month',
-                        yearly: '$1020 / year'
+                        monthly: '$99.99 / month',
+                        yearly: '$1199.88 / year'
                     }
                 }
             };
@@ -190,6 +191,7 @@
             const displayNameEl = document.getElementById('settingsDisplayName');
             const planBadgeEl = document.getElementById('settingsPlanBadge');
             const planPriceEl = document.getElementById('settingsPlanPrice');
+            const planCountdownEl = document.getElementById('settingsPlanCountdown');
             const emailPreviewEl = document.getElementById('settingsEmailPreview');
             const timeZonePreviewEl = document.getElementById('settingsTimeZonePreview');
             const messageEl = document.getElementById('settingsMessage');
@@ -198,6 +200,7 @@
             let activeUser = null;
             let activeProfile = {};
             let selectedAvatar = '';
+            let countdownIntervalId = null;
 
             avatarButtons.forEach((button) => {
                 button.addEventListener('click', () => {
@@ -350,7 +353,14 @@
                 const { planKey, billingInterval } = resolvePlanContext(activeProfile);
                 const planEntry = PLAN_CATALOG[planKey] || PLAN_CATALOG.trial;
                 const status = (activeProfile.status || 'trial').toLowerCase();
-                const hasPaidSubscription = PAID_STATUS_KEYS.includes(status);
+                const trialEndsAt = parseTimestamp(activeProfile.trialEndsAt);
+                const now = new Date();
+                const trialActive = status === 'trial' && trialEndsAt && trialEndsAt > now;
+                const trialExpired = status === 'trial' && !trialActive;
+                if (trialExpired) {
+                    expireTrialAccess(activeUser?.uid);
+                }
+                const hasPaidSubscription = trialActive || PAID_STATUS_KEYS.includes(status);
                 const fullName = activeProfile.fullName || activeUser.displayName || '';
                 const email = activeProfile.email || activeUser.email || '';
                 displayNameEl.textContent = fullName || email || 'Your workspace';
@@ -360,14 +370,27 @@
                     || planEntry.pricing?.monthly
                     || planEntry.pricing?.default
                     || '';
-                planBadgeEl.textContent = hasPaidSubscription ? `${planEntry.label} plan` : 'Upgrade now';
-                planPriceEl.textContent = hasPaidSubscription ? priceLabel : 'Upgrade to unlock multi-streaming.';
+                planBadgeEl.textContent = trialActive
+                    ? 'Trial access'
+                    : (hasPaidSubscription ? `${planEntry.label} plan` : 'Upgrade now');
+                planPriceEl.textContent = trialActive
+                    ? 'Streaming unlocked during your 24-hour preview.'
+                    : hasPaidSubscription
+                        ? priceLabel
+                        : trialExpired
+                            ? 'Trial expired. Upgrade to keep streaming.'
+                            : 'Upgrade to unlock multi-streaming.';
                 emailPreviewEl.textContent = email || '—';
                 const timeZoneValue = activeProfile.timeZone || getBrowserTimeZone();
                 syncTimeZoneSelect(timeZoneValue);
                 timeZonePreviewEl.textContent = timeZoneValue;
                 setAvatarSelection(activeProfile.avatar || '');
                 updateAvatarPreview(fullName || email, selectedAvatar);
+                if (trialActive) {
+                    startPlanCountdown(trialEndsAt);
+                } else {
+                    stopPlanCountdown({ showExpired: trialExpired });
+                }
             }
 
             function syncTimeZoneSelect(value) {
@@ -407,6 +430,56 @@
                     avatarPreview.textContent = fallback;
                     avatarPreview.classList.remove('avatar-icon');
                 }
+            }
+
+            function startPlanCountdown(targetDate) {
+                if (!planCountdownEl) {
+                    return;
+                }
+                stopPlanCountdown();
+                if (!(targetDate instanceof Date)) {
+                    return;
+                }
+                const render = () => {
+                    const remaining = targetDate.getTime() - Date.now();
+                    if (remaining <= 0) {
+                        stopPlanCountdown({ showExpired: true });
+                        return;
+                    }
+                    planCountdownEl.hidden = false;
+                    planCountdownEl.textContent = formatCountdownLabel(remaining);
+                };
+                render();
+                countdownIntervalId = setInterval(render, 1000);
+            }
+
+            function stopPlanCountdown({ showExpired = false } = {}) {
+                if (countdownIntervalId) {
+                    clearInterval(countdownIntervalId);
+                    countdownIntervalId = null;
+                }
+                if (!planCountdownEl) {
+                    return;
+                }
+                if (showExpired) {
+                    planCountdownEl.hidden = false;
+                    planCountdownEl.textContent = 'Trial expired. Upgrade to keep streaming.';
+                } else {
+                    planCountdownEl.hidden = true;
+                    planCountdownEl.textContent = '';
+                }
+            }
+
+            function formatCountdownLabel(msRemaining) {
+                const totalSeconds = Math.max(0, Math.floor(msRemaining / 1000));
+                const hours = Math.floor(totalSeconds / 3600);
+                const minutes = Math.floor((totalSeconds % 3600) / 60);
+                const seconds = totalSeconds % 60;
+                return `Trial access ends in ${padCountdown(hours)}h ${padCountdown(minutes)}m ${padCountdown(seconds)}s`;
+            }
+
+            function padCountdown(value) {
+                return String(value).padStart(2, '0');
             }
 
             function showMessage(message, tone = 'info') {
@@ -472,6 +545,21 @@
                     } catch (error) {
                         console.warn('Unable to clear cached profile', error);
                     }
+                }
+            }
+
+            async function expireTrialAccess(userId) {
+                if (!userId) {
+                    return;
+                }
+                try {
+                    await db.collection('users').doc(userId).set({
+                        status: 'expired',
+                        plan: 'Trial',
+                        cancelsAt: null
+                    }, { merge: true });
+                } catch (error) {
+                    console.error('Unable to expire trial access:', error);
                 }
             }
 
@@ -542,6 +630,17 @@
                     return value.toISOString();
                 }
                 return value;
+            }
+
+            function parseTimestamp(value) {
+                if (!value) {
+                    return null;
+                }
+                if (typeof value.toDate === 'function') {
+                    return value.toDate();
+                }
+                const parsed = new Date(value);
+                return Number.isNaN(parsed.getTime()) ? null : parsed;
             }
 
             function getBrowserTimeZone() {

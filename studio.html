@@ -655,6 +655,7 @@
                 currentTitle: '',
                 watermarkText: 'Lettuce Stream'
             };
+            let trialExpiryTimerId = null;
 
             bootstrap();
 
@@ -712,10 +713,22 @@
                     state.activeUser = user;
                     try {
                         const doc = await db.collection('users').doc(user.uid).get();
-                        const status = (doc.exists ? doc.data().status : 'trial') || 'trial';
-                        const isPaid = PAID_STATUS_KEYS.includes(String(status).toLowerCase());
+                        const profileData = doc.exists ? doc.data() : {};
+                        const status = (profileData.status || 'trial').toLowerCase();
+                        const trialEndsAt = parseTimestamp(profileData.trialEndsAt);
+                        const now = new Date();
+                        const trialActive = status === 'trial' && trialEndsAt && trialEndsAt > now;
+                        const isPaid = trialActive || PAID_STATUS_KEYS.includes(status);
                         if (dom.upgradeButton) {
                             dom.upgradeButton.hidden = isPaid;
+                        }
+                        if (trialActive) {
+                            scheduleTrialExpiry(trialEndsAt, user.uid);
+                        } else {
+                            clearTrialExpiryTimer();
+                            if (status === 'trial') {
+                                await expireTrialAccess(user.uid);
+                            }
                         }
                         if (!isPaid) {
                             window.location.href = 'billing.html';
@@ -823,6 +836,61 @@
                 if (!available && dom.statusPill) {
                     dom.statusPill.textContent = 'Preview mode · No destinations linked';
                     dom.statusPill.dataset.state = 'preview';
+                }
+            }
+
+            function parseTimestamp(value) {
+                if (!value) {
+                    return null;
+                }
+                if (typeof value.toDate === 'function') {
+                    return value.toDate();
+                }
+                const parsed = new Date(value);
+                return Number.isNaN(parsed.getTime()) ? null : parsed;
+            }
+
+            function clearTrialExpiryTimer() {
+                if (trialExpiryTimerId) {
+                    clearTimeout(trialExpiryTimerId);
+                    trialExpiryTimerId = null;
+                }
+            }
+
+            function scheduleTrialExpiry(deadline, userId) {
+                clearTrialExpiryTimer();
+                if (!(deadline instanceof Date)) {
+                    return;
+                }
+                const msRemaining = deadline.getTime() - Date.now();
+                if (msRemaining <= 0) {
+                    enforceTrialLock(userId);
+                    return;
+                }
+                trialExpiryTimerId = setTimeout(() => enforceTrialLock(userId), msRemaining);
+            }
+
+            async function enforceTrialLock(userId) {
+                clearTrialExpiryTimer();
+                await expireTrialAccess(userId);
+                showToast('Your 24-hour preview has ended. Upgrade to keep streaming.');
+                setTimeout(() => {
+                    window.location.href = 'billing.html';
+                }, 800);
+            }
+
+            async function expireTrialAccess(userId) {
+                if (!userId) {
+                    return;
+                }
+                try {
+                    await db.collection('users').doc(userId).set({
+                        status: 'expired',
+                        plan: 'Trial',
+                        cancelsAt: null
+                    }, { merge: true });
+                } catch (error) {
+                    console.error('Unable to expire trial access:', error);
                 }
             }
 

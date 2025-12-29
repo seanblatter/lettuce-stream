@@ -100,8 +100,8 @@
                     label: 'Starter',
                     description: 'For emerging creators learning multi-streaming fundamentals.',
                     pricing: {
-                        monthly: '$9 / month',
-                        yearly: '$108 / year'
+                        monthly: '$19.99 / month',
+                        yearly: '$239.88 / year'
                     },
                     features: [
                         'Stream to 2 destinations',
@@ -113,8 +113,8 @@
                     label: 'Pro',
                     description: 'Best for growing channels unlocking every platform and automation.',
                     pricing: {
-                        monthly: '$25 / month',
-                        yearly: '$300 / year'
+                        monthly: '$29.99 / month',
+                        yearly: '$359.88 / year'
                     },
                     features: [
                         'All 8 destinations unlocked',
@@ -126,8 +126,8 @@
                     label: 'Enterprise',
                     description: 'For studios that need collaboration, compliance, and white-glove care.',
                     pricing: {
-                        monthly: '$85 / month',
-                        yearly: '$1020 / year'
+                        monthly: '$99.99 / month',
+                        yearly: '$1199.88 / year'
                     },
                     features: [
                         'Everything in Pro',
@@ -196,38 +196,62 @@
                 const planEntry = PLAN_CATALOG[planKey] || PLAN_CATALOG.trial;
                 const status = (activeProfile.status || 'trial').toLowerCase();
                 const cancelsAt = parseTimestamp(activeProfile.cancelsAt);
+                const renewsAt = parseTimestamp(activeProfile.renewsAt);
+                const trialEndsAt = parseTimestamp(activeProfile.trialEndsAt);
                 const now = new Date();
-                const hasPaidSubscription = PAID_STATUS_KEYS.includes(status);
+                const trialActive = status === 'trial' && trialEndsAt && trialEndsAt > now;
+                const trialExpired = status === 'trial' && !trialActive;
+                const hasActiveSubscription = PAID_STATUS_KEYS.includes(status);
+                const hasPaidAccess = trialActive || hasActiveSubscription;
+                if (trialExpired) {
+                    expireTrialAccess(activeUser?.uid);
+                }
                 const priceLabel = planEntry.pricing?.[billingInterval]
                     || planEntry.pricing?.monthly
                     || planEntry.pricing?.default
                     || '';
 
-                planNameEl.textContent = hasPaidSubscription ? `${planEntry.label} plan` : 'Upgrade now';
-                planDescriptionEl.textContent = hasPaidSubscription
-                    ? planEntry.description
-                    : 'Upgrade to unlock scheduling, multi-streaming, and analytics.';
-                planPriceEl.textContent = hasPaidSubscription ? priceLabel : 'Upgrade to unlock multi-streaming';
-                renderFeatureList(hasPaidSubscription ? planEntry.features : []);
+                planNameEl.textContent = trialActive
+                    ? 'Trial access'
+                    : hasActiveSubscription
+                        ? `${planEntry.label} plan`
+                        : 'Upgrade now';
+                planDescriptionEl.textContent = trialActive
+                    ? 'Enjoy every feature for 24 hours before choosing a plan.'
+                    : hasActiveSubscription
+                        ? planEntry.description
+                        : 'Upgrade to unlock scheduling, multi-streaming, and analytics.';
+                planPriceEl.textContent = trialActive
+                    ? 'Free for the next 24 hours'
+                    : hasActiveSubscription
+                        ? priceLabel
+                        : trialExpired
+                            ? 'Preview ended – upgrade to continue.'
+                            : 'Upgrade to unlock multi-streaming';
+                renderFeatureList(hasPaidAccess ? planEntry.features : []);
 
-                const statusDisplay = formatStatus(status, cancelsAt, now);
+                const statusDisplay = formatStatus({ status, cancelsAt, now, trialActive, trialEndsAt });
                 statusValueEl.textContent = statusDisplay.primary;
                 statusCopyEl.textContent = statusDisplay.copy;
 
-                const renewalDate = determineRenewalDate({ status, cancelsAt, renewsAt, now });
+                const renewalDate = trialActive
+                    ? trialEndsAt
+                    : determineRenewalDate({ status, cancelsAt, renewsAt, now });
                 renewalValueEl.textContent = renewalDate ? formatFullDate(renewalDate) : 'Not scheduled';
 
                 const cancellationScheduled = status === 'cancelling' && cancelsAt && cancelsAt > now;
 
-                cancelButton.hidden = !hasPaidSubscription;
-                if (hasPaidSubscription) {
+                cancelButton.hidden = !hasActiveSubscription;
+                if (hasActiveSubscription) {
                     cancelButton.disabled = cancellationScheduled;
                     cancelButton.textContent = cancellationScheduled ? 'Cancellation scheduled' : 'Cancel plan';
                 }
 
                 if (cancellationScheduled && cancelsAt) {
                     actionCopyEl.textContent = `Your plan will end on ${formatFullDate(cancelsAt)}. Contact support if you need to keep access.`;
-                } else if (hasPaidSubscription) {
+                } else if (trialActive) {
+                    actionCopyEl.textContent = 'Your preview is active. Upgrade before the 24 hours end to keep streaming.';
+                } else if (hasActiveSubscription) {
                     actionCopyEl.textContent = 'Cancel anytime. Access stays active through the end of your billing period.';
                 } else {
                     actionCopyEl.textContent = 'Upgrade now to activate billing controls and go live.';
@@ -243,7 +267,14 @@
                 });
             }
 
-            function formatStatus(status, cancelsAt, now) {
+            function formatStatus({ status, cancelsAt, now, trialActive, trialEndsAt }) {
+                if (trialActive) {
+                    const countdown = trialEndsAt ? `Trial ends ${formatFullDate(trialEndsAt)}.` : 'Trial ends soon.';
+                    return { primary: 'Trial access', copy: countdown };
+                }
+                if (status === 'trial') {
+                    return { primary: 'Trial expired', copy: 'Upgrade to regain streaming access.' };
+                }
                 switch (status) {
                     case 'active':
                     case 'paid':
@@ -269,6 +300,21 @@
                     return renewsAt;
                 }
                 return addDays(now, 30);
+            }
+
+            async function expireTrialAccess(userId) {
+                if (!userId) {
+                    return;
+                }
+                try {
+                    await db.collection('users').doc(userId).set({
+                        status: 'expired',
+                        plan: 'Trial',
+                        cancelsAt: null
+                    }, { merge: true });
+                } catch (error) {
+                    console.error('Unable to expire trial access:', error);
+                }
             }
 
             async function scheduleCancellation() {
@@ -344,6 +390,7 @@
                     status: profile.status || 'trial',
                     cancelsAt: serializeTimestamp(profile.cancelsAt),
                     renewsAt: serializeTimestamp(profile.renewsAt),
+                    trialEndsAt: serializeTimestamp(profile.trialEndsAt),
                     avatar: profile.avatar || '',
                     timeZone: profile.timeZone || '',
                     subscriptionId: profile.subscriptionId || profile.stripeSubscriptionId || ''

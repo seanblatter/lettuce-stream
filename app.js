@@ -64,16 +64,16 @@ document.addEventListener('DOMContentLoaded', function() {
     if (pricingCards.length && billingToggleButtons.length) {
         const PRICING_CONFIG = {
             starter: {
-                monthly: { amount: 9, period: '/month', note: 'Billed monthly, cancel anytime.', slug: 'starter-monthly' },
-                yearly: { amount: 108, period: '/year', note: 'Billed annually ($9/mo equivalent).', slug: 'starter-yearly' }
+                monthly: { amount: 19.99, period: '/month', note: 'Billed monthly, cancel anytime.', slug: 'starter-monthly' },
+                yearly: { amount: 239.88, period: '/year', note: 'Billed annually ($19.99/mo equivalent).', slug: 'starter-yearly' }
             },
             pro: {
-                monthly: { amount: 25, period: '/month', note: 'Billed monthly, cancel anytime.', slug: 'pro-monthly' },
-                yearly: { amount: 300, period: '/year', note: 'Billed annually ($25/mo equivalent).', slug: 'pro-yearly' }
+                monthly: { amount: 29.99, period: '/month', note: 'Billed monthly, cancel anytime.', slug: 'pro-monthly' },
+                yearly: { amount: 359.88, period: '/year', note: 'Billed annually ($29.99/mo equivalent).', slug: 'pro-yearly' }
             },
             enterprise: {
-                monthly: { amount: 85, period: '/month', note: 'Billed monthly, cancel anytime.', slug: 'enterprise-monthly' },
-                yearly: { amount: 1020, period: '/year', note: 'Billed annually ($85/mo equivalent).', slug: 'enterprise-yearly' }
+                monthly: { amount: 99.99, period: '/month', note: 'Billed monthly, cancel anytime.', slug: 'enterprise-monthly' },
+                yearly: { amount: 1199.88, period: '/year', note: 'Billed annually ($99.99/mo equivalent).', slug: 'enterprise-yearly' }
             }
         };
         let activeBillingMode = '';

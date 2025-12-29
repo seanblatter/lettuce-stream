@@ -7,9 +7,9 @@ A modern, responsive landing page for Lettuce Stream - a SaaS platform that enab
 - **Modern Responsive Design**: Clean, professional interface with a soft yellow theme
 - **Split-Screen Authentication**: Stripe-inspired sign-up/sign-in pages with information panels
 - **Three Pricing Tiers**: 
-  - Starter ($19/mo)
-  - Pro ($29/mo) - Most Popular
-  - Enterprise ($99/mo)
+  - Starter ($19.99/mo)
+  - Pro ($29.99/mo) - Most Popular
+  - Enterprise ($99.99/mo)
 - **Firebase Integration**: Authentication and Firestore database
 - **Stripe Payment Gateway**: Integrated payment processing
 - **Mobile-Friendly**: Fully responsive design that works on all devices

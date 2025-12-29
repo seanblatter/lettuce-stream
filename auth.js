@@ -16,6 +16,7 @@ auth.onAuthStateChanged((user) => {
 });
 
 // Sign Up Form Handler
+const TRIAL_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
 const signupForm = document.getElementById('signupForm');
 if (signupForm) {
     // Pre-select plan from URL parameter
@@ -68,7 +69,7 @@ if (signupForm) {
                     email: email,
                     plan: planSlug,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days from now
+                    trialEndsAt: new Date(Date.now() + TRIAL_WINDOW_MS),
                     status: 'trial'
                 });
             } catch (profileError) {
@@ -159,7 +160,9 @@ if (googleSignInBtn) {
                     await db.collection('users').doc(user.uid).set({
                         fullName: user.displayName,
                         email: user.email,
+                        plan: 'trial',
                         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        trialEndsAt: new Date(Date.now() + TRIAL_WINDOW_MS),
                         status: 'trial'
                     });
                 } catch (profileError) {

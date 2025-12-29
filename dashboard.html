@@ -286,6 +286,7 @@
             plan: 'Trial',
             status: 'trial',
             cancelsAt: null,
+            trialEndsAt: null,
             hasSyncedExpiration: false,
             channelConnections: {}
         };
@@ -315,6 +316,7 @@
             }
         };
         const platformRegistry = {};
+        let trialExpiryTimeoutId = null;
 
         initTheme();
         initUserMenu();
@@ -364,11 +366,14 @@
             const plan = (profile.plan || 'Trial');
             const status = (profile.status || 'trial').toLowerCase();
             const cancelsAt = parseTimestamp(profile.cancelsAt);
+            const trialEndsAt = parseTimestamp(profile.trialEndsAt);
             const avatarChoice = profile.avatar || '';
             const now = new Date();
             const statusWhitelist = ['active', 'paid', 'upgraded'];
             let upgraded = statusWhitelist.includes(status);
             const isCancelling = status === 'cancelling';
+            const trialActive = status === 'trial' && trialEndsAt && trialEndsAt > now;
+            clearTrialLockTimer();
 
             if (isCancelling) {
                 if (cancelsAt && cancelsAt > now) {
@@ -378,12 +383,19 @@
                     dashboardState.hasSyncedExpiration = true;
                     markSubscriptionExpired(user.uid);
                 }
+            } else if (trialActive) {
+                upgraded = true;
+                scheduleTrialLock(trialEndsAt);
+            } else if (status === 'trial' && !dashboardState.hasSyncedExpiration) {
+                dashboardState.hasSyncedExpiration = true;
+                markSubscriptionExpired(user.uid);
             }
 
             dashboardState.requiresUpgrade = !upgraded;
             dashboardState.plan = plan;
             dashboardState.status = status;
             dashboardState.cancelsAt = cancelsAt;
+            dashboardState.trialEndsAt = trialEndsAt;
             dashboardState.channelConnections = profile.channelConnections || {};
 
             const initialSource = name || (user.email || '');
@@ -417,7 +429,7 @@
                     element.classList.remove('avatar-icon');
                 }
             });
-            updatePlanBadges({ plan, upgraded, isCancelling, cancelsAt });
+            updatePlanBadges({ plan, upgraded, isCancelling, cancelsAt, trialActive, trialEndsAt });
 
             toggleLockState();
             toggleUpgradeCues();
@@ -657,23 +669,77 @@
             });
         }
 
-        function updatePlanBadges({ plan, upgraded, isCancelling, cancelsAt }) {
+        function clearTrialLockTimer() {
+            if (trialExpiryTimeoutId) {
+                clearTimeout(trialExpiryTimeoutId);
+                trialExpiryTimeoutId = null;
+            }
+        }
+
+        function scheduleTrialLock(deadline) {
+            clearTrialLockTimer();
+            if (!(deadline instanceof Date)) {
+                return;
+            }
+            const msRemaining = deadline.getTime() - Date.now();
+            if (msRemaining <= 0) {
+                handleTrialLock();
+                return;
+            }
+            trialExpiryTimeoutId = setTimeout(handleTrialLock, msRemaining);
+        }
+
+        async function handleTrialLock() {
+            clearTrialLockTimer();
+            dashboardState.trialEndsAt = null;
+            if (dashboardState.requiresUpgrade) {
+                return;
+            }
+            dashboardState.requiresUpgrade = true;
+            dashboardState.status = 'expired';
+            toggleLockState();
+            toggleUpgradeCues();
+            updatePlanBadges({
+                plan: dashboardState.plan,
+                upgraded: false,
+                isCancelling: dashboardState.status === 'cancelling',
+                cancelsAt: dashboardState.cancelsAt,
+                trialActive: false,
+                trialEndsAt: null
+            });
+            showToast('Your 24-hour preview has ended. Upgrade to keep streaming.');
+            if (!dashboardState.hasSyncedExpiration && dashboardState.userId) {
+                dashboardState.hasSyncedExpiration = true;
+                try {
+                    await markSubscriptionExpired(dashboardState.userId);
+                } catch (error) {
+                    console.error('Unable to mark trial expired:', error);
+                }
+            }
+        }
+
+        function updatePlanBadges({ plan, upgraded, isCancelling, cancelsAt, trialActive, trialEndsAt }) {
             const sidebarPlan = document.getElementById('sidebarUserPlan');
             const planBadge = document.getElementById('planBadge');
             const mobilePlan = document.getElementById('mobileMenuUserPlan');
-            const planLabel = upgraded ? capitalize(plan) : 'Trial';
+            const hasPaidPlan = upgraded && !trialActive;
+            const planLabel = hasPaidPlan ? capitalize(plan) : (trialActive ? 'Trial access' : 'Trial');
             const cancelLabel = cancelsAt ? `Ends ${formatDate(cancelsAt)}` : 'Trial ends soon';
+            const trialLabel = trialEndsAt ? `Trial ends ${formatDate(trialEndsAt)}` : 'Trial access';
+            const badgeCopy = isCancelling && cancelsAt
+                ? cancelLabel
+                : (trialActive ? trialLabel : planLabel);
 
             if (sidebarPlan) {
                 sidebarPlan.textContent = isCancelling && cancelsAt ? 'Cancels soon' : planLabel;
             }
 
             if (mobilePlan) {
-                mobilePlan.textContent = isCancelling && cancelsAt ? cancelLabel : planLabel;
+                mobilePlan.textContent = badgeCopy;
             }
 
             if (planBadge) {
-                planBadge.textContent = isCancelling && cancelsAt ? cancelLabel : planLabel;
+                planBadge.textContent = badgeCopy;
             }
         }
 
@@ -749,6 +815,7 @@
                 status: profile.status || 'trial',
                 cancelsAt: serializeTimestamp(profile.cancelsAt),
                 renewsAt: serializeTimestamp(profile.renewsAt),
+                trialEndsAt: serializeTimestamp(profile.trialEndsAt),
                 avatar: profile.avatar || '',
                 timeZone: profile.timeZone || '',
                 subscriptionId: profile.subscriptionId || profile.stripeSubscriptionId || ''
