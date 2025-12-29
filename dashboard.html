@@ -116,7 +116,8 @@
                             <h3>YouTube</h3>
                             <p>Broadcast long-form and shorts simultaneously.</p>
                         </div>
-                        <button class="platform-connect" data-platform="YouTube">Connect</button>
+                        <div class="platform-status" data-platform-status="YouTube">Not connected</div>
+                        <button class="platform-connect" data-platform="youtube">Connect</button>
                     </article>
                     <article class="platform-card lock-required" data-platform-card="Twitch">
                         <div class="platform-icon">TW</div>
@@ -124,7 +125,8 @@
                             <h3>Twitch</h3>
                             <p>Engage your core community live.</p>
                         </div>
-                        <button class="platform-connect" data-platform="Twitch">Connect</button>
+                        <div class="platform-status" data-platform-status="Twitch">Not connected</div>
+                        <button class="platform-connect" data-platform="twitch">Connect</button>
                     </article>
                     <article class="platform-card lock-required" data-platform-card="Kick">
                         <div class="platform-icon">KK</div>
@@ -237,7 +239,8 @@
             plan: 'Trial',
             status: 'trial',
             cancelsAt: null,
-            hasSyncedExpiration: false
+            hasSyncedExpiration: false,
+            channelConnections: {}
         };
 
         const bodyElement = document.body;
@@ -250,16 +253,26 @@
         const upgradeTriggers = document.querySelectorAll('[data-upgrade-trigger]');
         const THEME_STORAGE_KEY = 'lettuce-dashboard-theme';
         const PROFILE_CACHE_KEY = 'lettuce-user-cache';
+        const PLATFORM_DEFINITIONS = {
+            youtube: {
+                label: 'YouTube',
+                startEndpoint: '/api/oauth/youtube-start',
+                type: 'oauth'
+            },
+            twitch: {
+                label: 'Twitch',
+                startEndpoint: '/api/oauth/twitch-start',
+                type: 'oauth'
+            }
+        };
+        const platformRegistry = {};
 
         initTheme();
         initUserMenu();
+        registerPlatformCards();
 
         upgradeTriggers.forEach((btn) => {
             btn.addEventListener('click', () => initiateUpgrade());
-        });
-
-        document.querySelectorAll('[data-platform]').forEach((btn) => {
-            btn.addEventListener('click', () => handlePlatformConnect(btn.dataset.platform));
         });
 
         document.getElementById('liveForm').addEventListener('submit', (event) => {
@@ -321,6 +334,7 @@
             dashboardState.plan = plan;
             dashboardState.status = status;
             dashboardState.cancelsAt = cancelsAt;
+            dashboardState.channelConnections = profile.channelConnections || {};
 
             const initialSource = name || (user.email || '');
             const initialChar = initialSource.trim().charAt(0).toUpperCase();
@@ -342,20 +356,193 @@
 
             toggleLockState();
             toggleUpgradeCues();
+            renderPlatformConnections();
         }
 
         function toggleLockState() {
             document.querySelectorAll('.lock-required').forEach((element) => {
                 element.classList.toggle('locked', dashboardState.requiresUpgrade);
             });
+            renderPlatformConnections();
+        }
+
+        function registerPlatformCards() {
+            document.querySelectorAll('[data-platform-card]').forEach((card) => {
+                const key = (card.dataset.platformCard || '').toLowerCase();
+                if (!key) {
+                    return;
+                }
+                platformRegistry[key] = {
+                    card,
+                    status: card.querySelector('[data-platform-status]'),
+                    button: card.querySelector('[data-platform]')
+                };
+            });
+
+            document.querySelectorAll('[data-platform]').forEach((btn) => {
+                btn.addEventListener('click', () => handlePlatformConnect(btn.dataset.platform));
+            });
+        }
+
+        function renderPlatformConnections() {
+            Object.keys(PLATFORM_DEFINITIONS).forEach((platformKey) => {
+                const connection = dashboardState.channelConnections?.[platformKey] || null;
+                applyPlatformState(platformKey, connection);
+            });
+        }
+
+        function applyPlatformState(platformKey, connection) {
+            const entry = platformRegistry[platformKey];
+            if (!entry || !entry.button) {
+                return;
+            }
+            const label = getPlatformLabel(platformKey);
+            if (entry.status) {
+                entry.status.textContent = connection
+                    ? `Connected to ${connection.title || label}`
+                    : 'Not connected';
+            }
+            entry.button.textContent = connection ? 'Disconnect' : 'Connect';
+            entry.button.disabled = dashboardState.requiresUpgrade;
+            if (entry.card) {
+                entry.card.classList.toggle('platform-connected', Boolean(connection));
+            }
+        }
+
+        async function startChannelOAuth(platformKey) {
+            const definition = PLATFORM_DEFINITIONS[platformKey];
+            if (!definition) {
+                showToast(`${getPlatformLabel(platformKey)} support is coming soon.`);
+                return;
+            }
+            setPlatformBusy(platformKey, true, 'Connecting…');
+            try {
+                const user = auth.currentUser;
+                if (!user) {
+                    throw new Error('Please sign in again to connect channels.');
+                }
+                const idToken = await user.getIdToken();
+                const response = await fetch(definition.startEndpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idToken })
+                });
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok || !payload.authorizationUrl) {
+                    throw new Error(payload?.error || 'Unable to start OAuth flow.');
+                }
+                window.location.href = payload.authorizationUrl;
+            } catch (error) {
+                console.error('Unable to start OAuth flow:', error);
+                showToast(error?.message || `Unable to connect ${getPlatformLabel(platformKey)}.`);
+                setPlatformBusy(platformKey, false);
+            }
+        }
+
+        async function disconnectChannel(platformKey) {
+            setPlatformBusy(platformKey, true, 'Disconnecting…');
+            try {
+                const user = auth.currentUser;
+                if (!user) {
+                    throw new Error('Please sign in again to disconnect channels.');
+                }
+                const idToken = await user.getIdToken();
+                const response = await fetch('/api/oauth/disconnect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idToken, provider: platformKey })
+                });
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(payload?.error || 'Unable to disconnect right now.');
+                }
+                if (dashboardState.channelConnections?.[platformKey]) {
+                    delete dashboardState.channelConnections[platformKey];
+                }
+                applyPlatformState(platformKey, null);
+                showToast(`${getPlatformLabel(platformKey)} disconnected.`);
+            } catch (error) {
+                console.error('Unable to disconnect channel:', error);
+                showToast(error?.message || 'Unable to disconnect right now.');
+            } finally {
+                setPlatformBusy(platformKey, false);
+            }
+        }
+
+        function setPlatformBusy(platformKey, isBusy, busyLabel) {
+            const entry = platformRegistry[platformKey];
+            if (!entry || !entry.button) {
+                return;
+            }
+            if (isBusy) {
+                if (!entry.button.dataset.originalLabel) {
+                    entry.button.dataset.originalLabel = entry.button.textContent;
+                }
+                entry.button.disabled = true;
+                if (busyLabel) {
+                    entry.button.textContent = busyLabel;
+                }
+                if (entry.card) {
+                    entry.card.classList.add('platform-busy');
+                }
+            } else {
+                entry.button.disabled = dashboardState.requiresUpgrade;
+                if (entry.button.dataset.originalLabel) {
+                    entry.button.textContent = entry.button.dataset.originalLabel;
+                    delete entry.button.dataset.originalLabel;
+                } else {
+                    entry.button.textContent = dashboardState.channelConnections?.[platformKey] ? 'Disconnect' : 'Connect';
+                }
+                if (entry.card) {
+                    entry.card.classList.remove('platform-busy');
+                }
+            }
+        }
+
+        function getPlatformKey(platformLabel = '') {
+            if (!platformLabel) {
+                return '';
+            }
+            const normalized = platformLabel.toLowerCase();
+            return PLATFORM_DEFINITIONS[normalized] ? normalized : '';
+        }
+
+        function getPlatformLabel(platformKey = '') {
+            if (!platformKey) {
+                return 'Platform';
+            }
+            const normalized = platformKey.toLowerCase();
+            return PLATFORM_DEFINITIONS[normalized]?.label || capitalize(platformKey);
         }
 
         function handlePlatformConnect(platform) {
-            if (dashboardState.requiresUpgrade) {
-                showToast(`Upgrade to connect ${platform}.`);
+            const platformKey = getPlatformKey(platform);
+            const label = getPlatformLabel(platformKey || platform);
+
+            if (!platformKey) {
+                showToast(`${label} support is coming soon.`);
                 return;
             }
-            showToast(`${platform} connected successfully!`);
+
+            if (dashboardState.requiresUpgrade) {
+                showToast(`Upgrade to connect ${label}.`);
+                return;
+            }
+
+            if (PLATFORM_DEFINITIONS[platformKey]) {
+                const existingConnection = dashboardState.channelConnections?.[platformKey];
+                if (existingConnection) {
+                    const confirmation = window.confirm(`Disconnect ${label}? Streams will stop syndicating to this destination.`);
+                    if (confirmation) {
+                        disconnectChannel(platformKey);
+                    }
+                } else {
+                    startChannelOAuth(platformKey);
+                }
+                return;
+            }
+
+            showToast(`${label} support is coming soon.`);
         }
 
         function handleStreamAction(message) {
@@ -631,6 +818,41 @@
             clearTimeout(toastTimeout);
             toastTimeout = setTimeout(() => toast.classList.remove('visible'), 3000);
         }
+
+        function processOAuthCallbackHints() {
+            const params = new URLSearchParams(window.location.search);
+            const connectedProvider = params.get('connected');
+            const errorProvider = params.get('connectError');
+            const reason = params.get('reason');
+
+            if (connectedProvider) {
+                showToast(`${getPlatformLabel(connectedProvider)} connected successfully.`);
+            } else if (errorProvider) {
+                const friendlyReason = formatConnectReason(reason);
+                const suffix = friendlyReason ? ` ${friendlyReason}.` : ' Please try again.';
+                showToast(`Unable to connect ${getPlatformLabel(errorProvider)}.${suffix}`);
+            } else {
+                return;
+            }
+
+            params.delete('connected');
+            params.delete('connectError');
+            if (reason) {
+                params.delete('reason');
+            }
+            const nextQuery = params.toString();
+            const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}${window.location.hash}`;
+            window.history.replaceState({}, document.title, nextUrl);
+        }
+
+        function formatConnectReason(reason = '') {
+            if (!reason) {
+                return '';
+            }
+            return reason.replace(/[_-]+/g, ' ');
+        }
+
+        processOAuthCallbackHints();
     </script>
 </body>
 </html>

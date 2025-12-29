@@ -22,6 +22,8 @@
   },
   "homepage": "https://github.com/seanblatter/lettuce-stream#readme",
   "dependencies": {
+    "firebase-admin": "^11.11.1",
+    "node-fetch": "^2.6.12",
     "stripe": "^20.1.0"
   }
 }

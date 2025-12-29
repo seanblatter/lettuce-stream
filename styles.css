@@ -927,6 +927,25 @@ body.dashboard-body[data-theme="dark"] {
     font-size: 14px;
 }
 
+.platform-status {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--dash-text-muted);
+}
+
+.platform-card.platform-connected {
+    border-color: var(--primary-yellow);
+    box-shadow: var(--shadow-md);
+}
+
+.platform-card.platform-connected .platform-status {
+    color: var(--primary-yellow);
+}
+
+.platform-card.platform-busy .platform-connect {
+    opacity: 0.6;
+}
+
 .platform-connect {
     border: 1px solid var(--dash-outline-border);
     border-radius: 999px;

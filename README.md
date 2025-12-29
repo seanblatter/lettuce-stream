@@ -204,6 +204,20 @@ app.post('/api/create-checkout-session', async (req, res) => {
 app.listen(3000);
 ```
 
+### Multistream OAuth Setup
+
+Lettuce Stream can link directly to YouTube and Twitch so your studio sessions restream everywhere at once. Because OAuth flows require server-side secrets, create environment variables before deploying your API endpoints (or Vercel functions):
+
+| Provider | Required Variables |
+| --- | --- |
+| Shared | `FIREBASE_SERVICE_ACCOUNT_KEY` (stringified service account JSON), `OAUTH_STATE_SECRET` (random 32+ character string), `APP_BASE_URL` (e.g. `https://app.lettucestream.com`), `OAUTH_REDIRECT_PATH` (default `/dashboard.html`) |
+| YouTube | `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`, `YOUTUBE_REDIRECT_URI` (e.g. `https://app.lettucestream.com/api/oauth/youtube-callback`), optional `YOUTUBE_SCOPES` (space/comma separated) |
+| Twitch | `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET`, `TWITCH_REDIRECT_URI` (e.g. `https://app.lettucestream.com/api/oauth/twitch-callback`), optional `TWITCH_SCOPES` |
+
+> **Tip:** You can generate `FIREBASE_SERVICE_ACCOUNT_KEY` in the Firebase Console (Project Settings → Service accounts → Generate new private key). Store the entire JSON string in the environment variable so the backend API can verify Firebase ID tokens and persist channel secrets.
+
+After deploying, update your Firestore security rules to deny access to the `channelSecrets` collection (the repo already includes this rule). OAuth tokens live there and are only readable via the server-side Admin SDK.
+
 ## Customization 🎨
 
 ### Colors
