@@ -12,6 +12,53 @@
 <body class="dashboard-body" data-theme="light">
     <div class="dashboard-atmosphere"></div>
     <div class="dashboard-shell">
+        <header class="dashboard-mobile-bar">
+            <div class="mobile-brand">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="32" height="32" rx="8" fill="#F5D547"/>
+                    <path d="M12 9L22 16L12 23V9Z" fill="#0F172A"/>
+                </svg>
+                <span>Lettuce Stream</span>
+            </div>
+            <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-haspopup="true" aria-expanded="false">
+                <span class="user-initial" id="mobileUserInitial"></span>
+                <span class="mobile-user-name" id="mobileUserName"></span>
+                <span class="mobile-menu-icon" aria-hidden="true">☰</span>
+            </button>
+        </header>
+        <div class="mobile-menu" id="mobileMenu" role="menu">
+            <div class="mobile-menu-user">
+                <div class="user-initial" id="mobileMenuUserInitial"></div>
+                <div>
+                    <p class="user-name" id="mobileMenuUserName"></p>
+                    <p class="user-plan" id="mobileMenuUserPlan"></p>
+                </div>
+            </div>
+            <nav class="mobile-nav-links" aria-label="Mobile primary">
+                <a class="mobile-nav-item" href="dashboard.html" aria-current="page">
+                    <span aria-hidden="true">🏠</span>
+                    <span>Home</span>
+                </a>
+                <a class="mobile-nav-item" href="dashboard.html#channels">
+                    <span aria-hidden="true">📡</span>
+                    <span>Channels</span>
+                </a>
+                <a class="mobile-nav-item" href="dashboard.html#analytics">
+                    <span aria-hidden="true">📊</span>
+                    <span>Analytics</span>
+                </a>
+                <a class="mobile-nav-item" href="storage.html">
+                    <span aria-hidden="true">💾</span>
+                    <span>Storage</span>
+                </a>
+            </nav>
+            <div class="mobile-menu-actions">
+                <button type="button" data-user-action="billing">Billing</button>
+                <button type="button" data-user-action="settings">Settings</button>
+                <button type="button" data-user-action="logout">Log Out</button>
+                <button class="sidebar-upgrade" data-upgrade-trigger>Upgrade Account</button>
+            </div>
+        </div>
         <aside class="dashboard-sidebar">
             <div class="sidebar-brand">
                 <svg width="36" height="36" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -69,7 +116,7 @@
                 </div>
             </header>
 
-            <section class="panel">
+            <section class="panel destinations-panel">
                 <div class="section-heading">
                     <div>
                         <p class="eyebrow">Destinations</p>
@@ -249,6 +296,8 @@
         const themeToggleLabel = document.getElementById('themeToggleLabel');
         const userMenuButton = document.getElementById('userMenuButton');
         const userDropdown = document.getElementById('userDropdown');
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const mobileMenu = document.getElementById('mobileMenu');
         const sidebarUpgradeButton = document.querySelector('.sidebar-upgrade');
         const upgradeTriggers = document.querySelectorAll('[data-upgrade-trigger]');
         const THEME_STORAGE_KEY = 'lettuce-dashboard-theme';
@@ -270,6 +319,7 @@
         initTheme();
         initUserMenu();
         registerPlatformCards();
+        initMobileMenu();
 
         upgradeTriggers.forEach((btn) => {
             btn.addEventListener('click', () => initiateUpgrade());
@@ -341,6 +391,8 @@
 
             document.getElementById('primaryUserName').textContent = name || user.email || '';
             document.getElementById('sidebarUserName').textContent = name || user.email || '';
+            document.getElementById('mobileUserName').textContent = name || user.email || '';
+            document.getElementById('mobileMenuUserName').textContent = name || user.email || '';
 
             const avatarElement = document.getElementById('sidebarUserInitial');
             if (avatarElement) {
@@ -352,6 +404,19 @@
                     avatarElement.classList.remove('avatar-icon');
                 }
             }
+
+            const mobileInitial = document.getElementById('mobileUserInitial');
+            const mobileMenuInitial = document.getElementById('mobileMenuUserInitial');
+            [mobileInitial, mobileMenuInitial].forEach((element) => {
+                if (!element) return;
+                if (avatarChoice) {
+                    element.textContent = avatarChoice;
+                    element.classList.add('avatar-icon');
+                } else {
+                    element.textContent = initialChar;
+                    element.classList.remove('avatar-icon');
+                }
+            });
             updatePlanBadges({ plan, upgraded, isCancelling, cancelsAt });
 
             toggleLockState();
@@ -599,11 +664,16 @@
         function updatePlanBadges({ plan, upgraded, isCancelling, cancelsAt }) {
             const sidebarPlan = document.getElementById('sidebarUserPlan');
             const planBadge = document.getElementById('planBadge');
+            const mobilePlan = document.getElementById('mobileMenuUserPlan');
             const planLabel = upgraded ? capitalize(plan) : 'Trial';
             const cancelLabel = cancelsAt ? `Ends ${formatDate(cancelsAt)}` : 'Trial ends soon';
 
             if (sidebarPlan) {
                 sidebarPlan.textContent = isCancelling && cancelsAt ? 'Cancels soon' : planLabel;
+            }
+
+            if (mobilePlan) {
+                mobilePlan.textContent = isCancelling && cancelsAt ? cancelLabel : planLabel;
             }
 
             if (planBadge) {
@@ -743,6 +813,46 @@
                     handleUserMenuAction(button.dataset.userAction);
                 });
             });
+        }
+
+        function initMobileMenu() {
+            if (!mobileMenuToggle || !mobileMenu) {
+                return;
+            }
+
+            mobileMenuToggle.addEventListener('click', (event) => {
+                event.stopPropagation();
+                toggleMobileMenu();
+            });
+
+            document.addEventListener('click', (event) => {
+                if (!mobileMenu.contains(event.target) && !mobileMenuToggle.contains(event.target)) {
+                    closeMobileMenu();
+                }
+            });
+
+            mobileMenu.querySelectorAll('[data-user-action]').forEach((button) => {
+                button.addEventListener('click', () => handleUserMenuAction(button.dataset.userAction));
+            });
+
+            mobileMenu.querySelectorAll('.mobile-nav-item').forEach((link) => {
+                link.addEventListener('click', () => closeMobileMenu());
+            });
+        }
+
+        function toggleMobileMenu(forceState) {
+            if (!mobileMenuToggle || !mobileMenu) {
+                return;
+            }
+
+            const isExpanded = mobileMenuToggle.getAttribute('aria-expanded') === 'true';
+            const shouldOpen = typeof forceState === 'boolean' ? forceState : !isExpanded;
+            mobileMenuToggle.setAttribute('aria-expanded', String(shouldOpen));
+            mobileMenu.classList.toggle('open', shouldOpen);
+        }
+
+        function closeMobileMenu() {
+            toggleMobileMenu(false);
         }
 
         function toggleUserMenu(forceState) {
