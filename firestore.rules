@@ -1,8 +1,21 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow create: if isAuthenticated();
+      allow read, update, delete: if isOwner(userId);
+
+      match /storageAssets/{assetId} {
+        allow read, write: if isOwner(userId);
+      }
     }
 
     match /channelSecrets/{documentId} {
