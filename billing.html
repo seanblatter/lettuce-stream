@@ -88,8 +88,8 @@
             const PLAN_CATALOG = {
                 trial: {
                     label: 'Trial',
-                    priceLabel: 'Free during preview',
                     description: 'Sample every workflow before you commit to a paid plan.',
+                    pricing: { monthly: 'Free during preview' },
                     features: [
                         'Stream planning + scheduling',
                         'Studio preview access',
@@ -98,8 +98,11 @@
                 },
                 starter: {
                     label: 'Starter',
-                    priceLabel: '$19 / month',
                     description: 'For emerging creators learning multi-streaming fundamentals.',
+                    pricing: {
+                        monthly: '$9 / month',
+                        yearly: '$108 / year'
+                    },
                     features: [
                         'Stream to 2 destinations',
                         '1080p HD output',
@@ -108,8 +111,11 @@
                 },
                 pro: {
                     label: 'Pro',
-                    priceLabel: '$29 / month',
                     description: 'Best for growing channels unlocking every platform and automation.',
+                    pricing: {
+                        monthly: '$25 / month',
+                        yearly: '$300 / year'
+                    },
                     features: [
                         'All 8 destinations unlocked',
                         '4K streaming + recording',
@@ -118,8 +124,11 @@
                 },
                 enterprise: {
                     label: 'Enterprise',
-                    priceLabel: '$99 / month',
                     description: 'For studios that need collaboration, compliance, and white-glove care.',
+                    pricing: {
+                        monthly: '$85 / month',
+                        yearly: '$1020 / year'
+                    },
                     features: [
                         'Everything in Pro',
                         '5 team seats included',
@@ -183,18 +192,22 @@
             }
 
             function renderProfile() {
-                const planKey = (activeProfile.plan || '').toLowerCase();
+                const { planKey, billingInterval } = resolvePlanContext(activeProfile);
                 const planEntry = PLAN_CATALOG[planKey] || PLAN_CATALOG.trial;
                 const status = (activeProfile.status || 'trial').toLowerCase();
                 const cancelsAt = parseTimestamp(activeProfile.cancelsAt);
                 const now = new Date();
                 const hasPaidSubscription = PAID_STATUS_KEYS.includes(status);
+                const priceLabel = planEntry.pricing?.[billingInterval]
+                    || planEntry.pricing?.monthly
+                    || planEntry.pricing?.default
+                    || '';
 
                 planNameEl.textContent = hasPaidSubscription ? `${planEntry.label} plan` : 'Upgrade now';
                 planDescriptionEl.textContent = hasPaidSubscription
                     ? planEntry.description
                     : 'Upgrade to unlock scheduling, multi-streaming, and analytics.';
-                planPriceEl.textContent = hasPaidSubscription ? planEntry.priceLabel : 'Upgrade to unlock multi-streaming';
+                planPriceEl.textContent = hasPaidSubscription ? priceLabel : 'Upgrade to unlock multi-streaming';
                 renderFeatureList(hasPaidSubscription ? planEntry.features : []);
 
                 const statusDisplay = formatStatus(status, cancelsAt, now);
@@ -389,6 +402,23 @@
 
             function setLoading(isLoading) {
                 loadingOverlay.hidden = !isLoading;
+            }
+
+            function resolvePlanContext(profile = {}) {
+                const rawPlan = (profile.planSlug || profile.plan || 'trial').toString().toLowerCase();
+                const normalizedPlan = rawPlan.replace(/[^a-z-]/g, '');
+                let basePlan = normalizedPlan.replace(/-(monthly|yearly)$/g, '') || normalizedPlan;
+                if (!PLAN_CATALOG[basePlan]) {
+                    basePlan = 'trial';
+                }
+                let billingInterval = (profile.planInterval || profile.billingInterval || profile.subscriptionInterval || '').toString().toLowerCase();
+                if (!['monthly', 'yearly'].includes(billingInterval)) {
+                    billingInterval = normalizedPlan.includes('year') ? 'yearly' : 'monthly';
+                }
+                if (basePlan === 'trial') {
+                    billingInterval = 'monthly';
+                }
+                return { planKey: basePlan, billingInterval };
             }
         });
     </script>

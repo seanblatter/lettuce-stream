@@ -63,9 +63,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const billingToggleButtons = document.querySelectorAll('[data-billing-option]');
     if (pricingCards.length && billingToggleButtons.length) {
         const PRICING_CONFIG = {
-            starter: { monthly: 9, yearly: 108, streams: 2 },
-            pro: { monthly: 25, yearly: 300, streams: 4 },
-            enterprise: { monthly: 85, yearly: 1020, streams: 5 }
+            starter: {
+                monthly: { amount: 9, period: '/month', note: 'Billed monthly, cancel anytime.', slug: 'starter-monthly' },
+                yearly: { amount: 108, period: '/year', note: 'Billed annually ($9/mo equivalent).', slug: 'starter-yearly' }
+            },
+            pro: {
+                monthly: { amount: 25, period: '/month', note: 'Billed monthly, cancel anytime.', slug: 'pro-monthly' },
+                yearly: { amount: 300, period: '/year', note: 'Billed annually ($25/mo equivalent).', slug: 'pro-yearly' }
+            },
+            enterprise: {
+                monthly: { amount: 85, period: '/month', note: 'Billed monthly, cancel anytime.', slug: 'enterprise-monthly' },
+                yearly: { amount: 1020, period: '/year', note: 'Billed annually ($85/mo equivalent).', slug: 'enterprise-yearly' }
+            }
         };
         let activeBillingMode = '';
 
@@ -95,24 +104,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!planConfig) {
                     return;
                 }
+                const modeConfig = planConfig[mode];
+                if (!modeConfig) {
+                    return;
+                }
                 const priceAmountEl = card.querySelector('[data-price-amount]');
                 const pricePeriodEl = card.querySelector('[data-price-period]');
                 const noteEl = card.querySelector('[data-billing-note]');
-                const impactEl = card.querySelector('[data-impact-copy]');
+                const ctaEl = card.querySelector('[data-plan-cta]');
                 if (priceAmountEl) {
-                    priceAmountEl.textContent = formatCurrency(planConfig[mode]);
+                    priceAmountEl.textContent = formatCurrency(modeConfig.amount);
                 }
                 if (pricePeriodEl) {
-                    pricePeriodEl.textContent = mode === 'monthly' ? '/month' : '/year';
+                    pricePeriodEl.textContent = modeConfig.period;
                 }
                 if (noteEl) {
-                    const monthlyRate = formatCurrency(planConfig.monthly);
-                    noteEl.textContent = mode === 'monthly'
-                        ? 'Billed monthly, cancel anytime.'
-                        : `Billed annually (${monthlyRate}/mo equivalent).`;
+                    noteEl.textContent = modeConfig.note;
                 }
-                if (impactEl) {
-                    impactEl.textContent = buildImpactCopy(planConfig.streams, mode);
+                if (ctaEl && modeConfig.slug) {
+                    ctaEl.href = `signup.html?plan=${modeConfig.slug}`;
                 }
             });
         }
@@ -120,12 +130,6 @@ document.addEventListener('DOMContentLoaded', function() {
         function formatCurrency(value) {
             const amount = Number(value || 0);
             return `$${amount.toLocaleString('en-US')}`;
-        }
-
-        function buildImpactCopy(streams, billingMode) {
-            const noun = streams === 1 ? 'clean water stream' : 'clean water streams';
-            const duration = billingMode === 'yearly' ? '12 months' : '1 month';
-            return `Funds ${duration} of clean water for ${streams} ${noun} via TeamWater.org.`;
         }
     }
 });

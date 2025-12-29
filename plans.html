@@ -28,14 +28,22 @@
         <section class="plans-hero">
             <p class="eyebrow">Plans</p>
             <h1>Compare plans and unlock streaming</h1>
-            <p>Stay on your trial while you evaluate, then upgrade the moment you're ready to broadcast everywhere.</p>
+            <p>Stay on your trial while you evaluate, then pick the billing cadence that matches your production calendar.</p>
         </section>
 
         <section class="plans-grid" id="billing">
-            <article class="plan-card">
+            <div class="plans-toggle-row">
+                <p class="plans-toggle-copy">Choose your billing cadence</p>
+                <div class="billing-toggle" role="group" aria-label="Select billing cadence">
+                    <button type="button" class="toggle-option active" data-plans-billing="monthly">Monthly</button>
+                    <button type="button" class="toggle-option" data-plans-billing="yearly">Yearly</button>
+                </div>
+            </div>
+            <article class="plan-card" data-plan-card="starter">
                 <h3>Starter</h3>
                 <p class="plan-description">For emerging creators learning multi-streaming fundamentals.</p>
-                <p class="plan-price">$19 <span>/month</span></p>
+                <p class="plan-price"><span data-plan-amount>$9</span> <span data-plan-period>/month</span></p>
+                <p class="plan-note" data-plan-note>Billed monthly, cancel anytime.</p>
                 <ul class="plan-feature-list">
                     <li>Stream to 2 destinations</li>
                     <li>1080p HD output</li>
@@ -46,12 +54,13 @@
                 <button type="button" class="btn-outline plan-cta" data-plan-tier="starter">Choose Starter</button>
             </article>
 
-            <article class="plan-card featured">
+            <article class="plan-card featured" data-plan-card="pro">
                 <h3>Pro</h3>
-                <p class="plan-description">Best for growing channels that need every platform and serious automation.</p>
-                <p class="plan-price">$29 <span>/month</span></p>
+                <p class="plan-description">Best for growing channels that need automation and full-fidelity delivery.</p>
+                <p class="plan-price"><span data-plan-amount>$25</span> <span data-plan-period>/month</span></p>
+                <p class="plan-note" data-plan-note>Billed monthly, cancel anytime.</p>
                 <ul class="plan-feature-list">
-                    <li>All 8 destinations unlocked</li>
+                    <li>Stream to 4 destinations</li>
                     <li>4K streaming + recording</li>
                     <li>Advanced analytics & alerts</li>
                     <li>Custom branding & overlays</li>
@@ -60,18 +69,19 @@
                 <button type="button" class="btn-primary plan-cta" data-plan-tier="pro">Go Pro</button>
             </article>
 
-            <article class="plan-card">
+            <article class="plan-card" data-plan-card="enterprise">
                 <h3>Enterprise</h3>
                 <p class="plan-description">For studios and teams that need collaboration, compliance, and white-glove care.</p>
-                <p class="plan-price">$99 <span>/month</span></p>
+                <p class="plan-price"><span data-plan-amount>$85</span> <span data-plan-period>/month</span></p>
+                <p class="plan-note" data-plan-note>Billed monthly, cancel anytime.</p>
                 <ul class="plan-feature-list">
+                    <li>Stream to 5 destinations</li>
                     <li>Everything in Pro</li>
                     <li>5 team seats included</li>
                     <li>White-label player and API</li>
-                    <li>Dedicated account manager</li>
                     <li>24/7 phone & chat support</li>
                 </ul>
-                <button type="button" class="btn-secondary plan-cta" data-plan-tier="enterprise">Talk to Sales</button>
+                <button type="button" class="btn-secondary plan-cta" data-plan-tier="enterprise">Choose Enterprise</button>
             </article>
         </section>
 
@@ -142,11 +152,89 @@
     <script>
         let activeUser = null;
         const planButtons = document.querySelectorAll('[data-plan-tier]');
+        const billingToggleButtons = document.querySelectorAll('[data-plans-billing]');
+        const planCards = document.querySelectorAll('[data-plan-card]');
+        const PLAN_PRICING = {
+            starter: {
+                monthly: { amount: 9, period: '/month', note: 'Billed monthly, cancel anytime.', slug: 'starter-monthly' },
+                yearly: { amount: 108, period: '/year', note: 'Billed annually ($9/mo equivalent).', slug: 'starter-yearly' }
+            },
+            pro: {
+                monthly: { amount: 25, period: '/month', note: 'Billed monthly, cancel anytime.', slug: 'pro-monthly' },
+                yearly: { amount: 300, period: '/year', note: 'Billed annually ($25/mo equivalent).', slug: 'pro-yearly' }
+            },
+            enterprise: {
+                monthly: { amount: 85, period: '/month', note: 'Billed monthly, cancel anytime.', slug: 'enterprise-monthly' },
+                yearly: { amount: 1020, period: '/year', note: 'Billed annually ($85/mo equivalent).', slug: 'enterprise-yearly' }
+            }
+        };
+        let activeBillingMode = 'monthly';
 
         if (typeof auth !== 'undefined') {
             auth.onAuthStateChanged((user) => {
                 activeUser = user || null;
             });
+        }
+
+        billingToggleButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                const mode = button.dataset.plansBilling;
+                if (mode && mode !== activeBillingMode) {
+                    setBillingMode(mode);
+                }
+            });
+        });
+
+        setBillingMode('monthly');
+
+        planButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                const tier = button.dataset.planTier;
+                const planSlug = resolvePlanSlug(tier);
+                handlePlanSelection(planSlug);
+            });
+        });
+
+        function setBillingMode(mode) {
+            if (!['monthly', 'yearly'].includes(mode)) {
+                return;
+            }
+            activeBillingMode = mode;
+            billingToggleButtons.forEach((button) => {
+                button.classList.toggle('active', button.dataset.plansBilling === mode);
+            });
+            planCards.forEach((card) => {
+                const tier = card.dataset.planCard;
+                const config = PLAN_PRICING[tier]?.[mode];
+                if (!config) {
+                    return;
+                }
+                const amountEl = card.querySelector('[data-plan-amount]');
+                const periodEl = card.querySelector('[data-plan-period]');
+                const noteEl = card.querySelector('[data-plan-note]');
+                if (amountEl) {
+                    amountEl.textContent = formatCurrency(config.amount);
+                }
+                if (periodEl) {
+                    periodEl.textContent = config.period;
+                }
+                if (noteEl) {
+                    noteEl.textContent = config.note;
+                }
+            });
+        }
+
+        function formatCurrency(value) {
+            const amount = Number(value || 0);
+            return `$${amount.toLocaleString('en-US')}`;
+        }
+
+        function resolvePlanSlug(tier) {
+            const config = PLAN_PRICING[tier]?.[activeBillingMode];
+            if (config?.slug) {
+                return config.slug;
+            }
+            return `${tier || 'pro'}-monthly`;
         }
 
         function handlePlanSelection(plan) {
@@ -165,12 +253,6 @@
             }
             window.location.href = `checkout.html?plan=${plan}`;
         }
-
-        planButtons.forEach((button) => {
-            button.addEventListener('click', () => {
-                handlePlanSelection(button.dataset.planTier);
-            });
-        });
     </script>
 </body>
 </html>

@@ -47,14 +47,6 @@
                     <p class="summary-value" id="settingsTimeZonePreview">—</p>
                 </div>
             </div>
-            <div class="clean-water-card" id="cleanWaterImpact" hidden>
-                <div class="clean-water-count" id="cleanWaterCount">0</div>
-                <div>
-                    <p class="clean-water-label">Clean water streams sponsored</p>
-                    <p class="clean-water-text" id="cleanWaterText">Upgrade to sponsor clean water access for creators around the world.</p>
-                    <a href="https://teamwater.org" target="_blank" rel="noopener">Learn about TeamWater.org</a>
-                </div>
-            </div>
         </section>
 
         <section class="settings-panel">
@@ -159,10 +151,28 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const PLAN_CATALOG = {
-                trial: { label: 'Trial', priceLabel: 'Free during preview', cleanStreams: 0 },
-                starter: { label: 'Starter', priceLabel: '$9/mo or $108/yr', cleanStreams: 2 },
-                pro: { label: 'Pro', priceLabel: '$25/mo or $300/yr', cleanStreams: 4 },
-                enterprise: { label: 'Enterprise', priceLabel: '$85/mo or $1020/yr', cleanStreams: 5 }
+                trial: { label: 'Trial', pricing: { monthly: 'Free during preview' } },
+                starter: {
+                    label: 'Starter',
+                    pricing: {
+                        monthly: '$9 / month',
+                        yearly: '$108 / year'
+                    }
+                },
+                pro: {
+                    label: 'Pro',
+                    pricing: {
+                        monthly: '$25 / month',
+                        yearly: '$300 / year'
+                    }
+                },
+                enterprise: {
+                    label: 'Enterprise',
+                    pricing: {
+                        monthly: '$85 / month',
+                        yearly: '$1020 / year'
+                    }
+                }
             };
             const PAID_STATUS_KEYS = ['active', 'paid', 'upgraded', 'cancelling'];
             const PROFILE_CACHE_KEY = 'lettuce-user-cache';
@@ -184,9 +194,6 @@
             const timeZonePreviewEl = document.getElementById('settingsTimeZonePreview');
             const messageEl = document.getElementById('settingsMessage');
             const loadingOverlay = document.getElementById('settingsLoading');
-            const cleanWaterCard = document.getElementById('cleanWaterImpact');
-            const cleanWaterCountEl = document.getElementById('cleanWaterCount');
-            const cleanWaterTextEl = document.getElementById('cleanWaterText');
 
             let activeUser = null;
             let activeProfile = {};
@@ -340,7 +347,7 @@
             }
 
             function refreshSummary() {
-                const planKey = (activeProfile.plan || 'trial').toLowerCase();
+                const { planKey, billingInterval } = resolvePlanContext(activeProfile);
                 const planEntry = PLAN_CATALOG[planKey] || PLAN_CATALOG.trial;
                 const status = (activeProfile.status || 'trial').toLowerCase();
                 const hasPaidSubscription = PAID_STATUS_KEYS.includes(status);
@@ -349,15 +356,18 @@
                 displayNameEl.textContent = fullName || email || 'Your workspace';
                 nameInput.value = fullName;
                 emailInput.value = email;
+                const priceLabel = planEntry.pricing?.[billingInterval]
+                    || planEntry.pricing?.monthly
+                    || planEntry.pricing?.default
+                    || '';
                 planBadgeEl.textContent = hasPaidSubscription ? `${planEntry.label} plan` : 'Upgrade now';
-                planPriceEl.textContent = hasPaidSubscription ? planEntry.priceLabel : 'Upgrade to unlock multi-streaming.';
+                planPriceEl.textContent = hasPaidSubscription ? priceLabel : 'Upgrade to unlock multi-streaming.';
                 emailPreviewEl.textContent = email || '—';
                 const timeZoneValue = activeProfile.timeZone || getBrowserTimeZone();
                 syncTimeZoneSelect(timeZoneValue);
                 timeZonePreviewEl.textContent = timeZoneValue;
                 setAvatarSelection(activeProfile.avatar || '');
                 updateAvatarPreview(fullName || email, selectedAvatar);
-                updateCleanWaterImpact({ hasPaidSubscription, planEntry });
             }
 
             function syncTimeZoneSelect(value) {
@@ -542,23 +552,21 @@
                 }
             }
 
-            function updateCleanWaterImpact({ hasPaidSubscription, planEntry }) {
-                if (!cleanWaterCard) {
-                    return;
+            function resolvePlanContext(profile = {}) {
+                const rawPlan = (profile.planSlug || profile.plan || 'trial').toString().toLowerCase();
+                const normalizedPlan = rawPlan.replace(/[^a-z-]/g, '');
+                let basePlan = normalizedPlan.replace(/-(monthly|yearly)$/g, '') || normalizedPlan;
+                if (!PLAN_CATALOG[basePlan]) {
+                    basePlan = 'trial';
                 }
-                if (!hasPaidSubscription || !planEntry?.cleanStreams) {
-                    cleanWaterCard.hidden = true;
-                    return;
+                let billingInterval = (profile.planInterval || profile.billingInterval || profile.subscriptionInterval || '').toString().toLowerCase();
+                if (!['monthly', 'yearly'].includes(billingInterval)) {
+                    billingInterval = normalizedPlan.includes('year') ? 'yearly' : 'monthly';
                 }
-                cleanWaterCard.hidden = false;
-                if (cleanWaterCountEl) {
-                    cleanWaterCountEl.textContent = planEntry.cleanStreams;
+                if (basePlan === 'trial') {
+                    billingInterval = 'monthly';
                 }
-                if (cleanWaterTextEl) {
-                    const count = planEntry.cleanStreams;
-                    const noun = count === 1 ? 'clean water stream' : 'clean water streams';
-                    cleanWaterTextEl.textContent = `Sponsoring ${count} ${noun} via TeamWater.org with your plan.`;
-                }
+                return { planKey: basePlan, billingInterval };
             }
         });
     </script>
