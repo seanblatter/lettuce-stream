@@ -26,6 +26,7 @@
     "firebase-admin": "^11.11.1",
     "googleapis": "^133.0.0",
     "node-fetch": "^2.6.12",
+    "protobufjs": "^7.3.2",
     "stripe": "^20.1.0",
     "ws": "^8.16.0"
   }
