@@ -90,13 +90,20 @@ module.exports = async function handler(req, res) {
             }
         });
 
+        const lifecycleStatus = await waitForBroadcastLifecycle({
+            youtube,
+            oauth2Client,
+            broadcastId
+        });
+
         res.status(200).json({
             broadcastId,
             streamId,
             ingestionAddress: ingestionInfo.ingestionAddress,
             streamName: ingestionInfo.streamName,
             streamKey: ingestionInfo.streamName,
-            rtmpUrl: `${ingestionInfo.ingestionAddress}/${ingestionInfo.streamName}`
+            rtmpUrl: `${ingestionInfo.ingestionAddress}/${ingestionInfo.streamName}`,
+            lifecycleStatus
         });
     } catch (error) {
         const statusCode = error?.statusCode || error?.code || 500;
@@ -113,4 +120,37 @@ function safeJsonParse(value) {
     } catch (error) {
         return {};
     }
+}
+
+const PUBLISH_POLL_INTERVAL_MS = 1500;
+const PUBLISH_TIMEOUT_MS = 20000;
+
+async function waitForBroadcastLifecycle({ youtube, oauth2Client, broadcastId }) {
+    const startedAt = Date.now();
+    let lastStatus = null;
+
+    while (Date.now() - startedAt < PUBLISH_TIMEOUT_MS) {
+        const response = await youtube.liveBroadcasts.list({
+            auth: oauth2Client,
+            id: broadcastId,
+            part: 'status'
+        });
+        const status = response?.data?.items?.[0]?.status?.lifeCycleStatus || null;
+        if (status) {
+            lastStatus = status;
+            if (status === 'ready' || status === 'testing' || status === 'live') {
+                return status;
+            }
+        }
+        await delay(PUBLISH_POLL_INTERVAL_MS);
+    }
+
+    const error = new Error('YouTube did not publish the broadcast in time.');
+    error.statusCode = 504;
+    error.snapshotStatus = lastStatus;
+    throw error;
+}
+
+function delay(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
