@@ -148,6 +148,16 @@
             flex-direction: column;
             gap: 4px;
         }
+        .asset-meta strong,
+        .asset-meta span {
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .asset-meta span {
+            color: var(--storage-muted);
+        }
         .asset-actions {
             display: flex;
             gap: 10px;
@@ -458,8 +468,8 @@
                     card.innerHTML = `
                         <div class="asset-preview">${renderPreview(asset)}</div>
                         <div class="asset-meta">
-                            <strong>${asset.title || 'Untitled asset'}</strong>
-                            <span>${asset.mimeType || 'Unknown type'} · ${formatBytes(asset.size)}</span>
+                            <strong title="${asset.title || 'Untitled asset'}">${asset.title || 'Untitled asset'}</strong>
+                            <span title="${asset.mimeType || 'Unknown type'}">${asset.mimeType || 'Unknown type'} · ${formatBytes(asset.size)}</span>
                         </div>
                         <div class="asset-actions">
                             <button type="button" data-action="download">Download</button>
@@ -486,7 +496,7 @@
                         <video controls src="${recording.downloadURL || ''}"></video>
                         <div>
                             <strong>${recording.title || 'Studio recording'}</strong>
-                            <p class="storage-muted">${formatTimestamp(recording.createdAt)} · ${formatDuration(recording.duration)}</p>
+                            <p class="storage-muted">${formatTimestamp(recording.createdAt)} · ${formatDuration(recording.duration)} · ${formatBytes(recording.size)}</p>
                         </div>
                         <div class="asset-actions">
                             <button type="button" data-action="download">Download</button>
@@ -508,7 +518,7 @@
                     return `<img src="${url}" alt="${asset.title || 'Uploaded image'}" loading="lazy">`;
                 }
                 if ((asset.mimeType || '').startsWith('video/')) {
-                    return `<video src="${url}" muted loop playsinline></video>`;
+                    return `<video src="${url}" controls playsinline preload="metadata"></video>`;
                 }
                 if ((asset.mimeType || '').startsWith('audio/')) {
                     return `<audio controls src="${url}"></audio>`;
