@@ -35,16 +35,25 @@ module.exports = async function handler(req, res) {
     try {
         const { youtube, oauth2Client } = await getYoutubeClientForUser(uid);
         const currentLifecycle = await fetchBroadcastStatus({ youtube, oauth2Client, broadcastId });
-        let currentStatus = currentLifecycle?.status?.lifeCycleStatus || 'unknown';
+        let currentStatus = currentLifecycle?.status?.lifeCycleStatus || null;
 
-        if (requestedStatus === 'live') {
-            currentStatus = await waitUntilTestingReady({
+        if (requestedStatus === 'testing') {
+            currentStatus = await ensureReadyForTesting({
+                youtube,
+                oauth2Client,
+                broadcastId,
+                initialStatus: currentStatus
+            });
+        } else if (requestedStatus === 'live') {
+            currentStatus = await ensureReadyForLive({
                 youtube,
                 oauth2Client,
                 broadcastId,
                 initialStatus: currentStatus
             });
         }
+
+        currentStatus = currentStatus || 'unknown';
 
         const statusesToApply = determineTransitions(currentStatus, requestedStatus);
 
@@ -204,8 +213,30 @@ function determineTransitions(currentStatus, requestedStatus) {
     return [requestedStatus];
 }
 
-async function waitUntilTestingReady({ youtube, oauth2Client, broadcastId, initialStatus }) {
-    if (initialStatus === 'testing' || initialStatus === 'live') {
+async function ensureReadyForTesting({ youtube, oauth2Client, broadcastId, initialStatus }) {
+    return waitForLifecycleState({
+        youtube,
+        oauth2Client,
+        broadcastId,
+        desiredStates: ['ready', 'testing', 'live'],
+        timeoutMessage: 'Broadcast never became ready for testing.',
+        initialStatus
+    });
+}
+
+async function ensureReadyForLive({ youtube, oauth2Client, broadcastId, initialStatus }) {
+    return waitForLifecycleState({
+        youtube,
+        oauth2Client,
+        broadcastId,
+        desiredStates: ['testing', 'live'],
+        timeoutMessage: 'Broadcast never entered testing state.',
+        initialStatus
+    });
+}
+
+async function waitForLifecycleState({ youtube, oauth2Client, broadcastId, desiredStates, timeoutMessage, initialStatus }) {
+    if (initialStatus && desiredStates.includes(initialStatus)) {
         return initialStatus;
     }
 
@@ -216,7 +247,7 @@ async function waitUntilTestingReady({ youtube, oauth2Client, broadcastId, initi
         await wait(POLL_INTERVAL_MS);
         const snapshot = await fetchBroadcastStatus({ youtube, oauth2Client, broadcastId });
         const status = snapshot?.status?.lifeCycleStatus;
-        if (status === 'testing' || status === 'live') {
+        if (status && desiredStates.includes(status)) {
             return status;
         }
         if (status) {
@@ -224,7 +255,7 @@ async function waitUntilTestingReady({ youtube, oauth2Client, broadcastId, initi
         }
     }
 
-    const error = new Error('Broadcast never entered testing state.');
+    const error = new Error(timeoutMessage);
     error.snapshotStatus = lastStatus === 'unknown' ? null : lastStatus;
     error.statusCode = 504;
     throw error;
