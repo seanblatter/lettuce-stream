@@ -2,6 +2,8 @@ const admin = require('../_lib/firebase-admin');
 const { getYoutubeClientForUser } = require('../_lib/youtube-client');
 
 const ALLOWED_STATUSES = new Set(['testing', 'live', 'complete']);
+const POLL_INTERVAL_MS = 1500;
+const POLL_TIMEOUT_MS = 15000;
 
 module.exports = async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -33,7 +35,17 @@ module.exports = async function handler(req, res) {
     try {
         const { youtube, oauth2Client } = await getYoutubeClientForUser(uid);
         const currentLifecycle = await fetchBroadcastStatus({ youtube, oauth2Client, broadcastId });
-        const currentStatus = currentLifecycle?.status?.lifeCycleStatus || 'unknown';
+        let currentStatus = currentLifecycle?.status?.lifeCycleStatus || 'unknown';
+
+        if (requestedStatus === 'live') {
+            currentStatus = await waitUntilTestingReady({
+                youtube,
+                oauth2Client,
+                broadcastId,
+                initialStatus: currentStatus
+            });
+        }
+
         const statusesToApply = determineTransitions(currentStatus, requestedStatus);
 
         if (!statusesToApply.length) {
@@ -190,6 +202,32 @@ function determineTransitions(currentStatus, requestedStatus) {
     }
 
     return [requestedStatus];
+}
+
+async function waitUntilTestingReady({ youtube, oauth2Client, broadcastId, initialStatus }) {
+    if (initialStatus === 'testing' || initialStatus === 'live') {
+        return initialStatus;
+    }
+
+    let lastStatus = initialStatus || 'unknown';
+    const startedAt = Date.now();
+
+    while (Date.now() - startedAt < POLL_TIMEOUT_MS) {
+        await wait(POLL_INTERVAL_MS);
+        const snapshot = await fetchBroadcastStatus({ youtube, oauth2Client, broadcastId });
+        const status = snapshot?.status?.lifeCycleStatus;
+        if (status === 'testing' || status === 'live') {
+            return status;
+        }
+        if (status) {
+            lastStatus = status;
+        }
+    }
+
+    const error = new Error('Broadcast never entered testing state.');
+    error.snapshotStatus = lastStatus === 'unknown' ? null : lastStatus;
+    error.statusCode = 504;
+    throw error;
 }
 
 function wait(ms) {
