@@ -32,34 +32,28 @@ module.exports = async function handler(req, res) {
 
     try {
         const { youtube, oauth2Client } = await getYoutubeClientForUser(uid);
-        const statusesToApply = requestedStatus === 'live' ? ['testing', 'live'] : [requestedStatus];
-        let finalStatus = requestedStatus;
+        const currentLifecycle = await fetchBroadcastStatus({ youtube, oauth2Client, broadcastId });
+        const currentStatus = currentLifecycle?.status?.lifeCycleStatus || 'unknown';
+        const statusesToApply = determineTransitions(currentStatus, requestedStatus);
 
+        if (!statusesToApply.length) {
+            res.status(200).json({
+                broadcastId,
+                status: currentStatus
+            });
+            return;
+        }
+
+        let finalStatus = currentStatus;
         for (const status of statusesToApply) {
-            try {
-                const response = await applyTransitionWithRetry({
-                    youtube,
-                    oauth2Client,
-                    broadcastId,
-                    status,
-                    allowRetries: requestedStatus === 'live'
-                });
-                finalStatus = response?.data?.status?.lifeCycleStatus || status;
-            } catch (error) {
-                const snapshot = await fetchBroadcastStatus({ youtube, oauth2Client, broadcastId });
-                const snapshotStatus = snapshot?.status?.lifeCycleStatus;
-                if (snapshotStatus === status) {
-                    finalStatus = snapshotStatus;
-                    console.warn(`Broadcast already in ${status} state, skipping explicit transition.`);
-                    continue;
-                }
-                const canIgnore = requestedStatus === 'live' && status === 'testing';
-                if (!canIgnore) {
-                    error.snapshotStatus = snapshotStatus || null;
-                    throw error;
-                }
-                console.warn('Testing transition skipped, continuing to live:', formatTransitionError(error));
-            }
+            const response = await applyTransitionWithRetry({
+                youtube,
+                oauth2Client,
+                broadcastId,
+                status,
+                allowRetries: requestedStatus === 'live'
+            });
+            finalStatus = response?.data?.status?.lifeCycleStatus || status;
         }
 
         res.status(200).json({
@@ -158,6 +152,44 @@ async function fetchBroadcastStatus({ youtube, oauth2Client, broadcastId }) {
         console.warn('Unable to fetch broadcast status snapshot:', formatTransitionError(error));
         return null;
     }
+}
+
+function determineTransitions(currentStatus, requestedStatus) {
+    if (currentStatus === requestedStatus) {
+        return [];
+    }
+
+    if (requestedStatus === 'testing') {
+        if (currentStatus === 'testing') {
+            return [];
+        }
+        if (currentStatus === 'live') {
+            return [];
+        }
+        return ['testing'];
+    }
+
+    if (requestedStatus === 'live') {
+        if (currentStatus === 'live') {
+            return [];
+        }
+        if (currentStatus === 'complete') {
+            return [];
+        }
+        if (currentStatus === 'testing') {
+            return ['live'];
+        }
+        return ['testing', 'live'];
+    }
+
+    if (requestedStatus === 'complete') {
+        if (currentStatus === 'complete') {
+            return [];
+        }
+        return ['complete'];
+    }
+
+    return [requestedStatus];
 }
 
 function wait(ms) {

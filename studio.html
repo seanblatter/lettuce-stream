@@ -977,6 +977,8 @@
                     };
 
                     await connectRelay(state.youtubeSession.ingestionAddress, state.youtubeSession.streamKey);
+                    await transitionBroadcast('testing');
+                    setStatusPill('Testing stream health…', true);
                     await startLiveRecorder();
 
                     state.isLive = true;
