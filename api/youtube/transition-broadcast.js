@@ -3,7 +3,7 @@ const { getYoutubeClientForUser } = require('../_lib/youtube-client');
 
 const ALLOWED_STATUSES = new Set(['testing', 'live', 'complete']);
 const POLL_INTERVAL_MS = 1500;
-const POLL_TIMEOUT_MS = 15000;
+const POLL_TIMEOUT_MS = 60000;
 
 module.exports = async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -35,7 +35,18 @@ module.exports = async function handler(req, res) {
     try {
         const { youtube, oauth2Client } = await getYoutubeClientForUser(uid);
         const currentLifecycle = await fetchBroadcastStatus({ youtube, oauth2Client, broadcastId });
-        let currentStatus = currentLifecycle?.status?.lifeCycleStatus || 'unknown';
+        let currentStatus = currentLifecycle?.status?.lifeCycleStatus || null;
+
+        if (!currentStatus) {
+            currentStatus = await waitForLifecycleState({
+                youtube,
+                oauth2Client,
+                broadcastId,
+                desiredStates: baselineLifecycleTargets(requestedStatus),
+                timeoutMessage: 'YouTube never reported a lifecycle state for this broadcast.',
+                initialStatus: null
+            });
+        }
 
         const statusesToApply = determineTransitions(currentStatus, requestedStatus);
 
@@ -205,6 +216,19 @@ function determineTransitions(currentStatus, requestedStatus) {
     }
 
     return [requestedStatus];
+}
+
+function baselineLifecycleTargets(requestedStatus) {
+    if (requestedStatus === 'testing') {
+        return ['ready', 'testing', 'live'];
+    }
+    if (requestedStatus === 'live') {
+        return ['testing', 'live'];
+    }
+    if (requestedStatus === 'complete') {
+        return ['live', 'complete'];
+    }
+    return ['created', 'ready', 'testing', 'live'];
 }
 
 async function waitForLifecycleState({ youtube, oauth2Client, broadcastId, desiredStates, timeoutMessage, initialStatus }) {
