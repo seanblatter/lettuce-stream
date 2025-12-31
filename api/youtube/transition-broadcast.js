@@ -37,11 +37,12 @@ module.exports = async function handler(req, res) {
 
         for (const status of statusesToApply) {
             try {
-                const response = await youtube.liveBroadcasts.transition({
-                    auth: oauth2Client,
-                    id: broadcastId,
-                    part: 'status',
-                    broadcastStatus: status
+                const response = await applyTransitionWithRetry({
+                    youtube,
+                    oauth2Client,
+                    broadcastId,
+                    status,
+                    allowRetries: requestedStatus === 'live'
                 });
                 finalStatus = response?.data?.status?.lifeCycleStatus || status;
             } catch (error) {
@@ -49,7 +50,7 @@ module.exports = async function handler(req, res) {
                 if (!canIgnore) {
                     throw error;
                 }
-                console.warn('Testing transition skipped, continuing to live:', error?.message || error);
+                console.warn('Testing transition skipped, continuing to live:', formatTransitionError(error));
             }
         }
 
@@ -59,12 +60,85 @@ module.exports = async function handler(req, res) {
         });
     } catch (error) {
         const statusCode = error?.statusCode || error?.code || 500;
-        console.error('Unable to transition YouTube broadcast:', error);
+        console.error('Unable to transition YouTube broadcast:', formatTransitionError(error));
         res.status(Number.isInteger(statusCode) ? statusCode : 500).json({
-            error: error?.message || 'Unable to update broadcast state.'
+            error: error?.message || 'Unable to update broadcast state.',
+            reason: extractErrorReason(error)
         });
     }
 };
+
+async function applyTransitionWithRetry({ youtube, oauth2Client, broadcastId, status, allowRetries }) {
+    const attempts = allowRetries ? 4 : 1;
+    let lastError;
+
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+        try {
+            return await youtube.liveBroadcasts.transition({
+                auth: oauth2Client,
+                id: broadcastId,
+                part: 'status',
+                broadcastStatus: status
+            });
+        } catch (error) {
+            lastError = error;
+            if (!shouldRetryTransition(error, attempt, attempts)) {
+                throw error;
+            }
+            const backoffMs = 1500 * attempt;
+            console.warn(`Transition to ${status} not ready, retrying in ${backoffMs}ms…`, formatTransitionError(error));
+            await wait(backoffMs);
+        }
+    }
+
+    throw lastError;
+}
+
+function shouldRetryTransition(error, attempt, attempts) {
+    if (attempt >= attempts) {
+        return false;
+    }
+    const reason = extractErrorReason(error);
+    const message = extractErrorMessage(error);
+    if (!reason) {
+        return false;
+    }
+    if (reason !== 'forbidden' && reason !== 'invalidTransition') {
+        return false;
+    }
+    return /cannot transition|not in the .* state|forbidden/i.test(message || '');
+}
+
+function extractErrorReason(error) {
+    const detail = extractErrorDetail(error);
+    return detail?.reason || error?.reason || null;
+}
+
+function extractErrorMessage(error) {
+    const detail = extractErrorDetail(error);
+    return detail?.message || error?.message || '';
+}
+
+function extractErrorDetail(error) {
+    if (error?.errors && Array.isArray(error.errors) && error.errors.length) {
+        return error.errors[0];
+    }
+    const responseErrors = error?.response?.data?.error?.errors;
+    if (Array.isArray(responseErrors) && responseErrors.length) {
+        return responseErrors[0];
+    }
+    return null;
+}
+
+function formatTransitionError(error) {
+    const reason = extractErrorReason(error);
+    const message = extractErrorMessage(error);
+    return reason ? `${message || 'Transition failed'} (reason: ${reason})` : message || 'Transition failed';
+}
+
+function wait(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function safeJsonParse(value) {
     try {

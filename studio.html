@@ -1114,13 +1114,26 @@
                 }
                 try {
                     const idToken = await state.activeUser.getIdToken(true);
-                    await fetch('/api/youtube/transition-broadcast', {
+                    const response = await fetch('/api/youtube/transition-broadcast', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ idToken, broadcastId, status: nextStatus })
                     });
+                    if (!response.ok) {
+                        const payload = await safeJson(response);
+                        const reason = payload?.reason ? ` (${payload.reason})` : '';
+                        throw new Error(payload?.error ? `${payload.error}${reason}` : `Unable to transition broadcast${reason}`);
+                    }
                 } catch (error) {
                     console.warn('Unable to update broadcast lifecycle:', error);
+                }
+            }
+
+            async function safeJson(response) {
+                try {
+                    return await response.json();
+                } catch (error) {
+                    return null;
                 }
             }
 
