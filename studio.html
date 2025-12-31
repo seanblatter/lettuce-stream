@@ -1108,12 +1108,16 @@
                 if (!state.youtubeSession || !state.activeUser) {
                     return;
                 }
+                const broadcastId = state.youtubeSession.broadcastId;
+                if (!broadcastId) {
+                    return;
+                }
                 try {
                     const idToken = await state.activeUser.getIdToken(true);
                     await fetch('/api/youtube/transition-broadcast', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ idToken, broadcastId: state.youtubeSession.broadcastId, status: nextStatus })
+                        body: JSON.stringify({ idToken, broadcastId, status: nextStatus })
                     });
                 } catch (error) {
                     console.warn('Unable to update broadcast lifecycle:', error);
