@@ -90,7 +90,7 @@ module.exports = async function handler(req, res) {
             }
         });
 
-        const lifecycleStatus = await waitForBroadcastLifecycle({
+        const lifecycleStatus = await waitForBroadcastPublication({
             youtube,
             oauth2Client,
             broadcastId
@@ -125,7 +125,7 @@ function safeJsonParse(value) {
 const PUBLISH_POLL_INTERVAL_MS = 1500;
 const PUBLISH_TIMEOUT_MS = 20000;
 
-async function waitForBroadcastLifecycle({ youtube, oauth2Client, broadcastId }) {
+async function waitForBroadcastPublication({ youtube, oauth2Client, broadcastId }) {
     const startedAt = Date.now();
     let lastStatus = null;
 
@@ -135,17 +135,14 @@ async function waitForBroadcastLifecycle({ youtube, oauth2Client, broadcastId })
             id: broadcastId,
             part: 'status'
         });
-        const status = response?.data?.items?.[0]?.status?.lifeCycleStatus || null;
-        if (status) {
-            lastStatus = status;
-            if (status === 'ready' || status === 'testing' || status === 'live') {
-                return status;
-            }
+        const item = response?.data?.items?.[0];
+        if (item) {
+            return item.status?.lifeCycleStatus || null;
         }
         await delay(PUBLISH_POLL_INTERVAL_MS);
     }
 
-    const error = new Error('YouTube did not publish the broadcast in time.');
+    const error = new Error('YouTube did not acknowledge the broadcast in time.');
     error.statusCode = 504;
     error.snapshotStatus = lastStatus;
     throw error;
