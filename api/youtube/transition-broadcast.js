@@ -35,25 +35,7 @@ module.exports = async function handler(req, res) {
     try {
         const { youtube, oauth2Client } = await getYoutubeClientForUser(uid);
         const currentLifecycle = await fetchBroadcastStatus({ youtube, oauth2Client, broadcastId });
-        let currentStatus = currentLifecycle?.status?.lifeCycleStatus || null;
-
-        if (requestedStatus === 'testing') {
-            currentStatus = await ensureReadyForTesting({
-                youtube,
-                oauth2Client,
-                broadcastId,
-                initialStatus: currentStatus
-            });
-        } else if (requestedStatus === 'live') {
-            currentStatus = await ensureReadyForLive({
-                youtube,
-                oauth2Client,
-                broadcastId,
-                initialStatus: currentStatus
-            });
-        }
-
-        currentStatus = currentStatus || 'unknown';
+        let currentStatus = currentLifecycle?.status?.lifeCycleStatus || 'unknown';
 
         const statusesToApply = determineTransitions(currentStatus, requestedStatus);
 
@@ -64,17 +46,29 @@ module.exports = async function handler(req, res) {
             });
             return;
         }
-
         let finalStatus = currentStatus;
+        const requiresLive = requestedStatus === 'live' && statusesToApply.includes('live');
+
         for (const status of statusesToApply) {
             const response = await applyTransitionWithRetry({
                 youtube,
                 oauth2Client,
                 broadcastId,
                 status,
-                allowRetries: requestedStatus === 'live'
+                allowRetries: status !== 'complete'
             });
             finalStatus = response?.data?.status?.lifeCycleStatus || status;
+
+            if (requiresLive && status === 'testing') {
+                finalStatus = await waitForLifecycleState({
+                    youtube,
+                    oauth2Client,
+                    broadcastId,
+                    desiredStates: ['testing', 'live'],
+                    timeoutMessage: 'Broadcast never stabilized in testing state before going live.',
+                    initialStatus: finalStatus
+                });
+            }
         }
 
         res.status(200).json({
@@ -93,7 +87,7 @@ module.exports = async function handler(req, res) {
 };
 
 async function applyTransitionWithRetry({ youtube, oauth2Client, broadcastId, status, allowRetries }) {
-    const attempts = allowRetries ? 4 : 1;
+    const attempts = allowRetries ? 8 : 1;
     let lastError;
 
     for (let attempt = 1; attempt <= attempts; attempt += 1) {
@@ -211,28 +205,6 @@ function determineTransitions(currentStatus, requestedStatus) {
     }
 
     return [requestedStatus];
-}
-
-async function ensureReadyForTesting({ youtube, oauth2Client, broadcastId, initialStatus }) {
-    return waitForLifecycleState({
-        youtube,
-        oauth2Client,
-        broadcastId,
-        desiredStates: ['ready', 'testing', 'live'],
-        timeoutMessage: 'Broadcast never became ready for testing.',
-        initialStatus
-    });
-}
-
-async function ensureReadyForLive({ youtube, oauth2Client, broadcastId, initialStatus }) {
-    return waitForLifecycleState({
-        youtube,
-        oauth2Client,
-        broadcastId,
-        desiredStates: ['testing', 'live'],
-        timeoutMessage: 'Broadcast never entered testing state.',
-        initialStatus
-    });
 }
 
 async function waitForLifecycleState({ youtube, oauth2Client, broadcastId, desiredStates, timeoutMessage, initialStatus }) {
