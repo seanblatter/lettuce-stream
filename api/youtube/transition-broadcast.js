@@ -32,16 +32,30 @@ module.exports = async function handler(req, res) {
 
     try {
         const { youtube, oauth2Client } = await getYoutubeClientForUser(uid);
-        const response = await youtube.liveBroadcasts.transition({
-            auth: oauth2Client,
-            id: broadcastId,
-            part: 'status',
-            broadcastStatus: requestedStatus
-        });
+        const statusesToApply = requestedStatus === 'live' ? ['testing', 'live'] : [requestedStatus];
+        let finalStatus = requestedStatus;
+
+        for (const status of statusesToApply) {
+            try {
+                const response = await youtube.liveBroadcasts.transition({
+                    auth: oauth2Client,
+                    id: broadcastId,
+                    part: 'status',
+                    broadcastStatus: status
+                });
+                finalStatus = response?.data?.status?.lifeCycleStatus || status;
+            } catch (error) {
+                const canIgnore = requestedStatus === 'live' && status === 'testing';
+                if (!canIgnore) {
+                    throw error;
+                }
+                console.warn('Testing transition skipped, continuing to live:', error?.message || error);
+            }
+        }
 
         res.status(200).json({
             broadcastId,
-            status: response?.data?.status?.lifeCycleStatus || requestedStatus
+            status: finalStatus
         });
     } catch (error) {
         const statusCode = error?.statusCode || error?.code || 500;
