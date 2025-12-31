@@ -46,8 +46,16 @@ module.exports = async function handler(req, res) {
                 });
                 finalStatus = response?.data?.status?.lifeCycleStatus || status;
             } catch (error) {
+                const snapshot = await fetchBroadcastStatus({ youtube, oauth2Client, broadcastId });
+                const snapshotStatus = snapshot?.status?.lifeCycleStatus;
+                if (snapshotStatus === status) {
+                    finalStatus = snapshotStatus;
+                    console.warn(`Broadcast already in ${status} state, skipping explicit transition.`);
+                    continue;
+                }
                 const canIgnore = requestedStatus === 'live' && status === 'testing';
                 if (!canIgnore) {
+                    error.snapshotStatus = snapshotStatus || null;
                     throw error;
                 }
                 console.warn('Testing transition skipped, continuing to live:', formatTransitionError(error));
@@ -63,7 +71,8 @@ module.exports = async function handler(req, res) {
         console.error('Unable to transition YouTube broadcast:', formatTransitionError(error));
         res.status(Number.isInteger(statusCode) ? statusCode : 500).json({
             error: error?.message || 'Unable to update broadcast state.',
-            reason: extractErrorReason(error)
+            reason: extractErrorReason(error),
+            snapshotStatus: error?.snapshotStatus || null
         });
     }
 };
@@ -134,6 +143,21 @@ function formatTransitionError(error) {
     const reason = extractErrorReason(error);
     const message = extractErrorMessage(error);
     return reason ? `${message || 'Transition failed'} (reason: ${reason})` : message || 'Transition failed';
+}
+
+async function fetchBroadcastStatus({ youtube, oauth2Client, broadcastId }) {
+    try {
+        const response = await youtube.liveBroadcasts.list({
+            auth: oauth2Client,
+            id: broadcastId,
+            part: 'status'
+        });
+        const item = Array.isArray(response?.data?.items) ? response.data.items[0] : null;
+        return item?.status ? { status: item.status } : null;
+    } catch (error) {
+        console.warn('Unable to fetch broadcast status snapshot:', formatTransitionError(error));
+        return null;
+    }
 }
 
 function wait(ms) {
