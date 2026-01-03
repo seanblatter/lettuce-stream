@@ -553,9 +553,6 @@
                 return;
             }
             if (isBusy) {
-                if (!entry.button.dataset.originalLabel) {
-                    entry.button.dataset.originalLabel = entry.button.textContent;
-                }
                 entry.button.disabled = true;
                 if (busyLabel) {
                     entry.button.textContent = busyLabel;
@@ -563,17 +560,14 @@
                 if (entry.card) {
                     entry.card.classList.add('platform-busy');
                 }
-            } else {
-                entry.button.disabled = dashboardState.requiresUpgrade;
-                if (entry.button.dataset.originalLabel) {
-                    entry.button.textContent = entry.button.dataset.originalLabel;
-                    delete entry.button.dataset.originalLabel;
-                } else {
-                    entry.button.textContent = dashboardState.channelConnections?.[platformKey] ? 'Disconnect' : 'Connect';
-                }
-                if (entry.card) {
-                    entry.card.classList.remove('platform-busy');
-                }
+                return;
+            }
+
+            entry.button.disabled = dashboardState.requiresUpgrade;
+            const hasConnection = Boolean(dashboardState.channelConnections?.[platformKey]);
+            entry.button.textContent = hasConnection ? 'Disconnect' : 'Connect';
+            if (entry.card) {
+                entry.card.classList.remove('platform-busy');
             }
         }
 
