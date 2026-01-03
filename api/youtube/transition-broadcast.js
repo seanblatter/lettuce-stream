@@ -33,8 +33,9 @@ module.exports = async function handler(req, res) {
     }
 
     try {
+        const lifecycleLog = [];
         const { youtube, oauth2Client } = await getYoutubeClientForUser(uid);
-        const currentLifecycle = await fetchBroadcastStatus({ youtube, oauth2Client, broadcastId });
+        const currentLifecycle = await fetchBroadcastStatus({ youtube, oauth2Client, broadcastId, lifecycleLog });
         let currentStatus = currentLifecycle?.status?.lifeCycleStatus || null;
 
         if (!currentStatus) {
@@ -44,7 +45,8 @@ module.exports = async function handler(req, res) {
                 broadcastId,
                 desiredStates: baselineLifecycleTargets(requestedStatus),
                 timeoutMessage: 'YouTube never reported a lifecycle state for this broadcast.',
-                initialStatus: null
+                initialStatus: null,
+                lifecycleLog
             });
         }
 
@@ -66,7 +68,8 @@ module.exports = async function handler(req, res) {
                 oauth2Client,
                 broadcastId,
                 status,
-                allowRetries: status !== 'complete'
+                allowRetries: status !== 'complete',
+                lifecycleLog
             });
             finalStatus = response?.data?.status?.lifeCycleStatus || status;
 
@@ -77,14 +80,16 @@ module.exports = async function handler(req, res) {
                     broadcastId,
                     desiredStates: ['testing', 'live'],
                     timeoutMessage: 'Broadcast never stabilized in testing state before going live.',
-                    initialStatus: finalStatus
+                    initialStatus: finalStatus,
+                    lifecycleLog
                 });
             }
         }
 
         res.status(200).json({
             broadcastId,
-            status: finalStatus
+            status: finalStatus,
+            lifecycleLog
         });
     } catch (error) {
         const statusCode = error?.statusCode || error?.code || 500;
@@ -92,12 +97,13 @@ module.exports = async function handler(req, res) {
         res.status(Number.isInteger(statusCode) ? statusCode : 500).json({
             error: error?.message || 'Unable to update broadcast state.',
             reason: extractErrorReason(error),
-            snapshotStatus: error?.snapshotStatus || null
+            snapshotStatus: error?.snapshotStatus || null,
+            lifecycleLog: error?.lifecycleLog || null
         });
     }
 };
 
-async function applyTransitionWithRetry({ youtube, oauth2Client, broadcastId, status, allowRetries }) {
+async function applyTransitionWithRetry({ youtube, oauth2Client, broadcastId, status, allowRetries, lifecycleLog }) {
     const attempts = allowRetries ? 8 : 1;
     let lastError;
 
@@ -112,6 +118,7 @@ async function applyTransitionWithRetry({ youtube, oauth2Client, broadcastId, st
         } catch (error) {
             lastError = error;
             if (!shouldRetryTransition(error, attempt, attempts)) {
+                error.lifecycleLog = lifecycleLog;
                 throw error;
             }
             const backoffMs = 1500 * attempt;
@@ -165,7 +172,7 @@ function formatTransitionError(error) {
     return reason ? `${message || 'Transition failed'} (reason: ${reason})` : message || 'Transition failed';
 }
 
-async function fetchBroadcastStatus({ youtube, oauth2Client, broadcastId }) {
+async function fetchBroadcastStatus({ youtube, oauth2Client, broadcastId, lifecycleLog }) {
     try {
         const response = await youtube.liveBroadcasts.list({
             auth: oauth2Client,
@@ -173,9 +180,12 @@ async function fetchBroadcastStatus({ youtube, oauth2Client, broadcastId }) {
             part: 'status'
         });
         const item = Array.isArray(response?.data?.items) ? response.data.items[0] : null;
-        return item?.status ? { status: item.status } : null;
+        const status = item?.status?.lifeCycleStatus || null;
+        recordLifecycleSnapshot(lifecycleLog, status, item);
+        return item?.status ? { status: item.status, raw: item } : null;
     } catch (error) {
         console.warn('Unable to fetch broadcast status snapshot:', formatTransitionError(error));
+        recordLifecycleSnapshot(lifecycleLog, null, { error: error?.message || 'list_failed' });
         return null;
     }
 }
@@ -231,7 +241,7 @@ function baselineLifecycleTargets(requestedStatus) {
     return ['created', 'ready', 'testing', 'live'];
 }
 
-async function waitForLifecycleState({ youtube, oauth2Client, broadcastId, desiredStates, timeoutMessage, initialStatus }) {
+async function waitForLifecycleState({ youtube, oauth2Client, broadcastId, desiredStates, timeoutMessage, initialStatus, lifecycleLog }) {
     if (initialStatus && desiredStates.includes(initialStatus)) {
         return initialStatus;
     }
@@ -241,7 +251,7 @@ async function waitForLifecycleState({ youtube, oauth2Client, broadcastId, desir
 
     while (Date.now() - startedAt < POLL_TIMEOUT_MS) {
         await wait(POLL_INTERVAL_MS);
-        const snapshot = await fetchBroadcastStatus({ youtube, oauth2Client, broadcastId });
+        const snapshot = await fetchBroadcastStatus({ youtube, oauth2Client, broadcastId, lifecycleLog });
         const status = snapshot?.status?.lifeCycleStatus;
         if (status && desiredStates.includes(status)) {
             return status;
@@ -254,7 +264,19 @@ async function waitForLifecycleState({ youtube, oauth2Client, broadcastId, desir
     const error = new Error(timeoutMessage);
     error.snapshotStatus = lastStatus === 'unknown' ? null : lastStatus;
     error.statusCode = 504;
+    error.lifecycleLog = lifecycleLog;
     throw error;
+}
+
+function recordLifecycleSnapshot(log, status, detail) {
+    if (!Array.isArray(log)) {
+        return;
+    }
+    log.push({
+        at: new Date().toISOString(),
+        status: status || null,
+        detail: detail || null
+    });
 }
 
 function wait(ms) {
