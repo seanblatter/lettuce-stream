@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trial Welcome - Lettuce Stream</title>
+    <title>Email Verification - Lettuce Stream</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -37,6 +37,49 @@
             border-radius: 12px;
             border: 1px solid var(--border-color);
             margin-bottom: 24px;
+            text-align: left;
+        }
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-weight: 600;
+        }
+        .status-pill.pending {
+            background: rgba(245, 213, 71, 0.15);
+            color: #8a6200;
+        }
+        .status-pill.verified {
+            background: rgba(56, 161, 105, 0.15);
+            color: #22543d;
+        }
+        .verification-card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 24px;
+            text-align: left;
+        }
+        .verification-card h2 {
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+        .verification-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .note {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        .hidden {
+            display: none !important;
         }
     </style>
 </head>
@@ -50,17 +93,36 @@
                 </svg>
             </div>
             
-            <h1>Welcome to Lettuce Stream! 🎉</h1>
-            <p>You have 24 hours of free streaming to explore everything. Take a moment to look around, then jump into your dashboard whenever you're ready.</p>
+            <h1>Verify your email ✅</h1>
+            <p>We just sent you a verification link. Confirm your email to unlock your 24-hour Lettuce Stream trial.</p>
             
             <div class="user-info">
                 <p style="margin: 0; font-weight: 600;" id="userEmail">Loading user info...</p>
-                <p style="margin: 8px 0 0 0; font-size: 14px; color: var(--text-light);">You have 24 hours of free streaming</p>
+                <p style="margin: 8px 0 0 0; font-size: 14px; color: var(--text-light);">24-hour trial access unlocks after verification.</p>
+                <div style="margin-top: 16px;">
+                    <span id="verificationStatus" class="status-pill pending">Checking status…</span>
+                </div>
             </div>
             
-            <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
-                <a href="dashboard.html" class="btn-primary btn-large">Go to Home</a>
-                <button onclick="signOut()" class="btn-secondary btn-large">Sign Out</button>
+            <div id="verificationCard" class="verification-card">
+                <h2>Verify your inbox</h2>
+                <p>Please click the verification link in the email we sent you. Once verified, you’ll be redirected back here with instant access.</p>
+                <p class="note">Verification link destination: <a href="#" id="actionUrl" rel="noopener noreferrer"></a></p>
+                <p class="note" id="lastEmailNote"></p>
+                <div class="verification-actions">
+                    <button id="sendEmailButton" class="btn-primary btn-large" onclick="sendVerificationEmail()">Resend verification email</button>
+                    <button id="refreshStatusButton" class="btn-secondary btn-large" onclick="refreshVerificationStatus()">I verified already</button>
+                    <button class="btn-secondary btn-large" onclick="signOut()">Sign Out</button>
+                </div>
+            </div>
+
+            <div id="verifiedCard" class="verification-card hidden">
+                <h2>All set!</h2>
+                <p>Your email is verified. Tap below to start your 24-hour trial experience.</p>
+                <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                    <a href="dashboard.html" class="btn-primary btn-large">Enter dashboard</a>
+                    <button class="btn-secondary btn-large" onclick="signOut()">Sign Out</button>
+                </div>
             </div>
         </div>
     </div>
@@ -73,15 +135,79 @@
     
     <script src="firebase-config.js"></script>
     <script>
-        // Check if user is logged in
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                document.getElementById('userEmail').textContent = user.email;
-            } else {
-                // Not logged in, redirect to signin
+        const ACTION_URL = `${window.location.origin.replace(/\/$/, '')}/trial-welcome.html`;
+        const dom = {
+            userEmail: document.getElementById('userEmail'),
+            statusPill: document.getElementById('verificationStatus'),
+            verificationCard: document.getElementById('verificationCard'),
+            verifiedCard: document.getElementById('verifiedCard'),
+            sendEmailButton: document.getElementById('sendEmailButton'),
+            refreshButton: document.getElementById('refreshStatusButton'),
+            lastEmailNote: document.getElementById('lastEmailNote')
+        };
+        const actionUrlAnchor = document.getElementById('actionUrl');
+        actionUrlAnchor.textContent = ACTION_URL;
+        actionUrlAnchor.href = ACTION_URL;
+
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) {
                 window.location.href = 'signin.html';
+                return;
             }
+            dom.userEmail.textContent = user.email;
+            await user.reload();
+            updateVerificationUI(user);
         });
+
+        function updateVerificationUI(user) {
+            const verified = Boolean(user.emailVerified);
+            dom.statusPill.textContent = verified ? 'Email verified' : 'Verification required';
+            dom.statusPill.classList.toggle('verified', verified);
+            dom.statusPill.classList.toggle('pending', !verified);
+            dom.verificationCard.classList.toggle('hidden', verified);
+            dom.verifiedCard.classList.toggle('hidden', !verified);
+            dom.lastEmailNote.textContent = verified ? '' : 'Didn\'t get it? Resend or check your spam folder.';
+        }
+
+        async function refreshVerificationStatus() {
+            const user = auth.currentUser;
+            if (!user) {
+                return;
+            }
+            dom.refreshButton.disabled = true;
+            dom.refreshButton.textContent = 'Checking…';
+            try {
+                await user.reload();
+                updateVerificationUI(user);
+            } catch (error) {
+                console.warn('Unable to refresh status:', error);
+            } finally {
+                dom.refreshButton.disabled = false;
+                dom.refreshButton.textContent = 'I verified already';
+            }
+        }
+
+        async function sendVerificationEmail() {
+            const user = auth.currentUser;
+            if (!user) {
+                return;
+            }
+            dom.sendEmailButton.disabled = true;
+            dom.sendEmailButton.textContent = 'Sending…';
+            try {
+                await user.sendEmailVerification({
+                    url: ACTION_URL,
+                    handleCodeInApp: false
+                });
+                dom.lastEmailNote.textContent = 'Verification email sent. If you don\'t see it, check your spam folder.';
+            } catch (error) {
+                console.error('Unable to send verification email:', error);
+                dom.lastEmailNote.textContent = 'Unable to send email. Please try again in a moment.';
+            } finally {
+                dom.sendEmailButton.disabled = false;
+                dom.sendEmailButton.textContent = 'Resend verification email';
+            }
+        }
         
         function signOut() {
             auth.signOut().then(() => {
